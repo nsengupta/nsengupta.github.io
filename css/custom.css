@@ -1,0 +1,7 @@
+body.container {
+    max-width: 90rem !important;
+}
+
+main.wide-content {
+    width: 100%;
+}

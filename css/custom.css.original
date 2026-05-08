@@ -1,0 +1,22 @@
+body.container {
+    max-width: 1200px !important;
+    width: 95% !important;
+}
+
+main.wide-content {
+    max-width: 1200px;
+    width: 100%;
+}
+
+article {
+    max-width: 1200px;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+pre {
+    overflow-x: auto;
+}
