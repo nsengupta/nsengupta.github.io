@@ -1,0 +1,52 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36" border="50" scale="3" compressed="false" locked="false">
+  <diagram name="Blank" id="YmL12bMKpDGza6XwsDPr">
+    <mxGraphModel dx="1814" dy="849" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" background="none" math="1" shadow="0">
+      <root>
+        <mxCell id="X5NqExCQtvZxIxQ7pmgY-0" />
+        <mxCell id="1" parent="X5NqExCQtvZxIxQ7pmgY-0" />
+        <mxCell id="PKVpxSQgamYVgMS3nroH-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="Vehicle&#39;s DigitalTwin&amp;nbsp;" vertex="1">
+          <mxGeometry height="80" width="160" x="40" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="PKVpxSQgamYVgMS3nroH-2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="CAN Bus" vertex="1">
+          <mxGeometry height="60" width="400" x="-80" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="PKVpxSQgamYVgMS3nroH-3" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="Speed Sensor" vertex="1">
+          <mxGeometry height="80" width="80" x="-80" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="PKVpxSQgamYVgMS3nroH-8" edge="1" parent="1" source="PKVpxSQgamYVgMS3nroH-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="PKVpxSQgamYVgMS3nroH-2" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="PKVpxSQgamYVgMS3nroH-4" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="RPM Sensor" vertex="1">
+          <mxGeometry height="80" width="80" x="80" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="PKVpxSQgamYVgMS3nroH-5" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;" value="Frontlight Sensor/&lt;div&gt;Actuator&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="80" x="240" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="PKVpxSQgamYVgMS3nroH-6" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="-40" y="320" />
+            </Array>
+            <mxPoint x="-40" y="320" as="sourcePoint" />
+            <mxPoint x="-40" y="263" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PKVpxSQgamYVgMS3nroH-10" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="260" y="317" />
+            </Array>
+            <mxPoint x="260" y="317" as="sourcePoint" />
+            <mxPoint x="260" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PKVpxSQgamYVgMS3nroH-11" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="300" y="260" as="sourcePoint" />
+            <mxPoint x="300" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

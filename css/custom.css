@@ -1,7 +1,74 @@
+/* Better readable width */
 body.container {
-    max-width: 90rem !important;
+    max-width: 68rem !important;
 }
 
-main.wide-content {
-    width: 100%;
+/* Main article typography */
+body.container article p,
+body.container article li,
+body.container main p,
+body.container main li {
+    font-size: 1.05rem !important;
+    line-height: 1.6 !important;
+}
+
+/* Reduce oversized title appearance */
+body.container article h1,
+body.container main h1 {
+    font-size: 1.7rem !important;
+    line-height: 1.25 !important;
+    margin-top: 1rem !important;
+    margin-bottom: 0.8rem !important;
+}
+
+/* Section headings */
+body.container article h2,
+body.container main h2 {
+    font-size: 1.4rem !important;
+    margin-top: 1.5rem !important;
+}
+
+/* Smaller subsection headings */
+body.container article h3,
+body.container main h3 {
+    font-size: 1.2rem !important;
+}
+
+/* Tone down horizontal separators */
+hr {
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+    opacity: 0.2 !important;
+}
+
+/* Code */
+body.container pre,
+body.container code {
+    font-size: 0.95rem !important;
+}
+
+/* Images */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Long code blocks */
+pre {
+    overflow-x: auto;
+}
+
+/* Remove after-dark decorative title underline */
+body.container article h1::after,
+body.container main h1::after,
+.post-title::after,
+.post-title h1::after {
+    display: none !important;
+    content: none !important;
+    border: none !important;
+}
+
+/* Remove after-dark fake ==== decoration under titles */
+.hack h1:after {
+    content: "" !important;
 }

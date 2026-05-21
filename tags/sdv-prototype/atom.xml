@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Nirmalya Sengupta - sdv-prototype</title>
+    <subtitle>Software Programming, reflections, soliloquys </subtitle>
+    <link rel="self" type="application/atom+xml" href="https://nsengupta.github.io/tags/sdv-prototype/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://nsengupta.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2026-05-21T00:00:00+00:00</updated>
+    <id>https://nsengupta.github.io/tags/sdv-prototype/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Prototyping a Software Defined Vehicle - Stage II</title>
+        <published>2026-05-21T00:00:00+00:00</published>
+        <updated>2026-05-21T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-2/"/>
+        <id>https://nsengupta.github.io/blog/prototype-software-defined-vehicle-2/</id>
+        
+        <content type="html" xml:base="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-2/">&lt;h3 id=&quot;preface&quot;&gt;Preface&lt;&#x2F;h3&gt;
+&lt;p&gt;From the previous &lt;a href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-1&#x2F;&quot;&gt;blog&lt;&#x2F;a&gt;, we have come to this arrangement:&lt;&#x2F;p&gt;
+&lt;img src=&quot;SDV-Blog-Inputs-2.jpg&quot; title=&quot;&quot; alt=&quot;Stage 1 arrangement (gateway + emulator)&quot; width=&quot;399&quot;&gt;
+&lt;p&gt;But, it is too simplistic and doesn&#x27;t represent how a modern car&#x27;s signals travel and are processed.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;what-should-change-frontlight-sensor-actuator&quot;&gt;What should change: Frontlight Sensor&#x2F;Actuator&lt;&#x2F;h3&gt;
+&lt;p&gt;In the current arrangement, Frontlight Sensor and Actuator are two different components. The Sensor&#x27;s data arrive through the Emulator.The command for the Actuator is received by an asynchronous code-block  behaving as the Frontlight itself. This asynchronous code-block is an adjunct to the Gateway in the picture.&lt;&#x2F;p&gt;
+&lt;p&gt;We want to be more accurate in making the connection. The ambient light sensor should tell the car if the visibility around (meaning, what the driver sees) has reduced. The FrontHeadlamp should be actuated accordingly; switched on or off, depending on the visibility.&lt;&#x2F;p&gt;
+&lt;img title=&quot;&quot; src=&quot;Schematic-2.png&quot; alt=&quot;Frontlight sensor and actuator on CAN bus&quot; width=&quot;396&quot;&gt;
+&lt;p&gt;Again, this is incomplete, because:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;FrontHeadlamp should be a separate component. The CarDogitalTwin should actuate it through the CAN Bus.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;CarDogitalTwin will like to know if the FrontHeadlamps are &lt;em&gt;indeed&lt;&#x2F;em&gt; switched on of off. It follows that the FrontHeadlamp must inform the CarDogitalTwin through the same CAN Bus, as well.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;h3 id=&quot;what-should-change-gateway&quot;&gt;What should change: Gateway&lt;&#x2F;h3&gt;
+&lt;p&gt;The current Gateway plays an important role.&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;It is capable of reading the CAN Bus. In fact, it is the only component that &lt;em&gt;reads&lt;&#x2F;em&gt; the CAN Bus. Tomorrow, it can read some other channel.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;It is capable of translating messages arriving through the CAN Bus, into internal messages, i.e, messages that the CarDigitalTwin&#x27;s Actor understands - its own vocabulary.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Additionally, the Gateway also spawns and manages an asynchronous logic, that behaves as the FronHeadlampActuator. The interaction between the actuator and the Gateway happens solely between themselves (using a tokio channel). Thus, the Gateway never has to write anything to the CAN Bus.&lt;&#x2F;p&gt;
+&lt;p&gt;But, this is not the correct arrangement. The FrontHeadlampActuator must receive instructions and must acknowledge the status of  execution, through the &lt;u&gt;same CAN Bus&lt;&#x2F;u&gt;. For that to happen, the Gateway must also write messages back into the CAN Bus.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;A short note about the structure of the messages:&lt;&#x2F;p&gt;
+&lt;p&gt;The signals that flow through the CAN Bus - in the form of messages - follow standardized, domain-agnostic data model that organizes automotive signals into a unified, human-readable form named &lt;strong&gt;Vehicle Signal Specification (VSS)&lt;&#x2F;strong&gt;, developed by &lt;strong&gt;COVESA&lt;&#x2F;strong&gt; (Connected Vehicle Systems Alliance). However, in this project, currently, the Emulator puts every Telemetry data into a locally defined #rustlang &lt;em&gt;enum&lt;&#x2F;em&gt;, instead of using the official VSS Standard Catalog (incorporation that is a TODO for later versions of this project):&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;rust&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;pub enum&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt; VssSignal&lt;&#x2F;span&gt;&lt;span&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;    &#x2F;&#x2F;&#x2F; Vehicle.Speed (Unit: km&#x2F;h, &lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;    &#x2F;&#x2F;&#x2F; Scaling: 0.01)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;    VehicleSpeed&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;f64&lt;&#x2F;span&gt;&lt;span&gt;),&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;    &#x2F;&#x2F;&#x2F; Vehicle.Powertrain.CombustionEngine.Speed &lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;    &#x2F;&#x2F;&#x2F; (Unit: rpm, Scaling: 1.0)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;    EngineRpm&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;u16&lt;&#x2F;span&gt;&lt;span&gt;),&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;    &#x2F;&#x2F;&#x2F; Vehicle.Cabin or exterior ambient light &lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;    &#x2F;&#x2F;&#x2F; sensor (Unit: lux, Scaling: 1.0)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;    AmbientLux&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;u16&lt;&#x2F;span&gt;&lt;span&gt;),&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;what-should-change-sensors&quot;&gt;What should change: Sensors&lt;&#x2F;h3&gt;
+&lt;p&gt;The Speed sensor is extraneous. It should go. The RPM Sensor is useful. Is should stay.&lt;&#x2F;p&gt;
+&lt;p&gt;In this version, I am using only one RPM Sensor. In a real 4-W car, there will be 4. The speed will be &lt;strong&gt;calculated&lt;&#x2F;strong&gt; based on the RPM of these wheels and a host of other parameters belonging to a moving car&#x27;s physics, using specialized mathematical functions. In this project, we are not doing any such complicated calculation. We are going to take one RPM value, multiply that with an approximation factor and arrive at the speed.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;what-should-change-frontheadlampactuator&quot;&gt;What should change: FrontHeadlampActuator&lt;&#x2F;h3&gt;
+&lt;p&gt;The FrontHeadlampActuator should not remain an appendage of the Gateway (refer to the picture above). The DigitalTwin should interact with it, through the CAN Bus, using VSS Signals.&lt;&#x2F;p&gt;
+&lt;p&gt;What should change: DigitalTwin must emit its latest status; its view of the what&#x27;s happening in the physical car, right not. For that to happen, the DigitalTwin should run an information-stream, which we should be able to see. For the time being, we will use &lt;em&gt;stdout&lt;&#x2F;em&gt; for  the purpose. The &lt;em&gt;stdout&lt;&#x2F;em&gt; will be the dashboard, if you like!&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;after-the-changes&quot;&gt;After the changes..&lt;&#x2F;h3&gt;
+&lt;p&gt;The arrangement is like the following:&lt;&#x2F;p&gt;
+&lt;img src=&quot;SDV-Blog-Inputs-4.jpg&quot; alt=&quot;Stage 2 arrangement — emulator, gateway, front-headlamp actuator on vcan0&quot; title=&quot;Stage 2 arrangement&quot; width=&quot;720&quot;&gt;
+&lt;h3 id=&quot;explanation&quot;&gt;Explanation&lt;&#x2F;h3&gt;
+&lt;p&gt;The updated prototype is built from &lt;strong&gt;three executables&lt;&#x2F;strong&gt;, each run in its own shell:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Gateway&lt;&#x2F;strong&gt; — hosts the CarDigitalTwin application (see below) and is the sole bridge between that application and the CAN Bus.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Emulator&lt;&#x2F;strong&gt; — stands in for the physical car’s sensors; it publishes telemetry onto the CAN Bus.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;FrontHeadlamp Assembly&lt;&#x2F;strong&gt; — a separate process that models a zonal ECU for the front headlamp subsystem.&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;&lt;strong&gt;CAN Bus.&lt;&#x2F;strong&gt; The bus is Linux’s own Virtual CAN (SocketCAN), exposed as a virtual network interface. The default name is &lt;strong&gt;&lt;code&gt;vcan0&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt;. All cross-process traffic in this prototype goes through that interface.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;CarDigitalTwin (one application).&lt;&#x2F;strong&gt; Inside the Gateway executable, &lt;strong&gt;Gateway&lt;&#x2F;strong&gt;, &lt;strong&gt;Controller&lt;&#x2F;strong&gt;, &lt;strong&gt;Actor&lt;&#x2F;strong&gt;, and &lt;strong&gt;FSM&lt;&#x2F;strong&gt; work together as a single application. A deliberate design rule keeps the Digital Twin ignorant of raw CAN bytes: it speaks only its own &lt;strong&gt;vocabulary&lt;&#x2F;strong&gt;—&lt;code&gt;DigitalTwinCarVocabulary&lt;&#x2F;code&gt; wrapping &lt;code&gt;FsmEvent&lt;&#x2F;code&gt; messages (plus request&#x2F;reply such as &lt;code&gt;GetStatus&lt;&#x2F;code&gt;). Everything that arrives from the wire is normalized elsewhere. &lt;strong&gt;Gateway&lt;&#x2F;strong&gt; decodes CAN frames into &lt;code&gt;VehicleEvent&lt;&#x2F;code&gt; &#x2F; &lt;code&gt;PhysicalCarVocabulary&lt;&#x2F;code&gt; (telemetry, timer ticks, headlamp ACK&#x2F;NACK, and so on). &lt;strong&gt;Controller&lt;&#x2F;strong&gt; projects that physical vocabulary into the twin’s vocabulary before anything reaches the Actor. On egress, domain actions from the FSM are turned back into CAN actuation frames by the Gateway. The Actor never parses a CAN ID; it only reacts to vocabulary it already understands.&lt;&#x2F;p&gt;
+&lt;p&gt;The ingress chain is explicit in code:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;rust&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;&#x2F;&#x2F; Gateway: CAN frame → VssSignal → VehicleEvent → PhysicalCarVocabulary&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; ev&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt; VehicleEvent&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;TelemetryUpdate&lt;&#x2F;span&gt;&lt;span&gt;(sig);&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; physical&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&lt;&#x2F;span&gt;&lt;span&gt; ingress&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;vehicle_event_to_physical_vocabulary&lt;&#x2F;span&gt;&lt;span&gt;(ev);&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;&#x2F;&#x2F; … forwarded to the controller …&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;controller&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;submit_physical_car_event&lt;&#x2F;span&gt;&lt;span&gt;(physical)&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.await?&lt;&#x2F;span&gt;&lt;span&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;rust&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;&#x2F;&#x2F; Controller: PhysicalCarVocabulary → DigitalTwinCarVocabulary (twin vocabulary)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;pub async fn&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt; submit_physical_car_event&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;    &amp;amp;&lt;&#x2F;span&gt;&lt;span style=&quot;color: #BD93F9;font-style: italic;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    event&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt; PhysicalCarVocabulary&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;)&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; -&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt; Result&lt;&#x2F;span&gt;&lt;span&gt;&amp;lt;(),&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt; VehicleControllerError&lt;&#x2F;span&gt;&lt;span&gt;&amp;gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;    let&lt;&#x2F;span&gt;&lt;span&gt; msg&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&lt;&#x2F;span&gt;&lt;span style=&quot;color: #BD93F9;font-style: italic;&quot;&gt; self&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;projector&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;project&lt;&#x2F;span&gt;&lt;span&gt;(event)&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;?&lt;&#x2F;span&gt;&lt;span&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #BD93F9;font-style: italic;&quot;&gt;    self&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;actor&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;send_message&lt;&#x2F;span&gt;&lt;span&gt;(msg)&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.await?&lt;&#x2F;span&gt;&lt;span&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;    Ok&lt;&#x2F;span&gt;&lt;span&gt;(())&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The projector is where physical-side wording becomes FSM events the twin actually consumes:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;rust&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;&#x2F;&#x2F; PhysicalCarVocabulary → FsmEvent → DigitalTwinCarVocabulary::Fsm(...)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;PhysicalCarVocabulary&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;TelemetryUpdate&lt;&#x2F;span&gt;&lt;span&gt;(VssSignal&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;EngineRpm&lt;&#x2F;span&gt;&lt;span&gt;(rpm))&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&amp;gt;&lt;&#x2F;span&gt;&lt;span&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;    FsmEvent&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;UpdateRpm&lt;&#x2F;span&gt;&lt;span&gt;(rpm)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;PhysicalCarVocabulary&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;FrontHeadlampCommandConfirmed&lt;&#x2F;span&gt;&lt;span&gt; { on_command&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color: #BD93F9;&quot;&gt; true&lt;&#x2F;span&gt;&lt;span&gt; }&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&amp;gt;&lt;&#x2F;span&gt;&lt;span&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;    FsmEvent&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;FrontHeadlampOnAck&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;&#x2F;&#x2F; …&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;Ok&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;DigitalTwinCarVocabulary&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;Fsm&lt;&#x2F;span&gt;&lt;span&gt;(fsm))&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The twin’s mailbox vocabulary stays separate from the bus:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;rust&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;pub enum&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt; DigitalTwinCarVocabulary&lt;&#x2F;span&gt;&lt;span&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;    &#x2F;&#x2F;&#x2F; Drive the FSM (`fsm::step` derives context from event payloads).&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;    Fsm&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;FsmEvent&lt;&#x2F;span&gt;&lt;span&gt;),&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;    GetStatus&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;RpcReplyPort&lt;&#x2F;span&gt;&lt;span&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;DigitalTwinCar&lt;&#x2F;span&gt;&lt;span&gt;&amp;gt;),&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;&lt;strong&gt;Actor and FSM together.&lt;&#x2F;strong&gt; The Actor’s main loop is intentionally thin: for each &lt;code&gt;DigitalTwinCarVocabulary::Fsm(evt)&lt;&#x2F;code&gt; message it calls &lt;code&gt;fsm::step&lt;&#x2F;code&gt; with the current state and context, persists the returned next state and context, then executes any domain actions (for example, requesting a headlamp switch). Behaviour is therefore fully determined by (a) which &lt;strong&gt;events&lt;&#x2F;strong&gt; arrive in the twin vocabulary and (b) which &lt;strong&gt;transitions&lt;&#x2F;strong&gt; the FSM defines for those events.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;rust&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;match&lt;&#x2F;span&gt;&lt;span&gt; message {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;    DigitalTwinCarVocabulary&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;Fsm&lt;&#x2F;span&gt;&lt;span&gt;(evt)&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&amp;gt;&lt;&#x2F;span&gt;&lt;span&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;        let&lt;&#x2F;span&gt;&lt;span&gt; result&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&lt;&#x2F;span&gt;&lt;span&gt; fsm&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;step&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;            &amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;runtime_state&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;twin_car&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;current_state,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;            &amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;runtime_state&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;twin_car&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;context,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;            &amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;evt,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;            std&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;time&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span&gt;Instant&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;now&lt;&#x2F;span&gt;&lt;span&gt;(),&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        );&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        runtime_state&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;twin_car&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;current_state &lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; result&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;next_state&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;clone&lt;&#x2F;span&gt;&lt;span&gt;();&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        runtime_state&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;twin_car&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;context &lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span&gt; result&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;modified_ctx;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;        for&lt;&#x2F;span&gt;&lt;span&gt; action&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; in&lt;&#x2F;span&gt;&lt;span&gt; result&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;actions {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;            runtime_state&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;actuation_manager&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;execute&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;action,&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; &amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;runtime_state&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;twin_car)&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.await?&lt;&#x2F;span&gt;&lt;span&gt;;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;        Ok&lt;&#x2F;span&gt;&lt;span&gt;(())&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;    &#x2F;&#x2F; …&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;A small slice of the transition table shows the same contract from the FSM side—here, ignition and motion:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;rust&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;match&lt;&#x2F;span&gt;&lt;span&gt; current_state {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;    FsmState&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;Off&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&amp;gt; match&lt;&#x2F;span&gt;&lt;span&gt; event {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;        FsmEvent&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;PowerOn&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; if&lt;&#x2F;span&gt;&lt;span&gt; current_ctx&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;is_healthy&lt;&#x2F;span&gt;&lt;span&gt;()&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&amp;gt;&lt;&#x2F;span&gt;&lt;span&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;            TransitionResult&lt;&#x2F;span&gt;&lt;span&gt; { next_state&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt; FsmState&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;Idle&lt;&#x2F;span&gt;&lt;span&gt;, note&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt; None&lt;&#x2F;span&gt;&lt;span&gt; }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;        &#x2F;&#x2F; …&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;    FsmState&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;Idle&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&amp;gt; match&lt;&#x2F;span&gt;&lt;span&gt; event {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;        FsmEvent&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;UpdateRpm&lt;&#x2F;span&gt;&lt;span&gt;(rpm)&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; if *&lt;&#x2F;span&gt;&lt;span&gt;rpm&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; &amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: #BD93F9;&quot;&gt; 1000&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&amp;gt;&lt;&#x2F;span&gt;&lt;span&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;            TransitionResult&lt;&#x2F;span&gt;&lt;span&gt; { next_state&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt; FsmState&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;Driving&lt;&#x2F;span&gt;&lt;span&gt;, note&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt; None&lt;&#x2F;span&gt;&lt;span&gt; }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;        &#x2F;&#x2F; …&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;    &#x2F;&#x2F; …&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Separately, &lt;code&gt;step&lt;&#x2F;code&gt; applies lighting policy when context events such as &lt;code&gt;UpdateAmbientLux&lt;&#x2F;code&gt; arrive—still driven only by &lt;code&gt;FsmEvent&lt;&#x2F;code&gt;, not by CAN layout. That is why swapping the CAN codec tomorrow should touch Gateway and the projector, not the Actor or the transition table.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Emulator.&lt;&#x2F;strong&gt; The Emulator embeds the logic needed to synthesize sensor readings at the appropriate rates (for example, RPM and ambient lux). Each reading is encoded in a &lt;strong&gt;user-defined CAN data format&lt;&#x2F;strong&gt; aligned with the project’s local &lt;code&gt;VssSignal&lt;&#x2F;code&gt; enum (shown above), rather than the full COVESA catalog—for now.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;FrontHeadlamp Assembly.&lt;&#x2F;strong&gt; This executable is &lt;strong&gt;independent&lt;&#x2F;strong&gt; of the Gateway process. It represents a &lt;strong&gt;zonal ECU&lt;&#x2F;strong&gt;: it receives headlamp commands over the CAN Bus, drives the (simulated) actuator, and reports headlamp status back on the same bus so the CarDigitalTwin can confirm whether the lamps are actually on or off.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Dashboard on stdout.&lt;&#x2F;strong&gt; The CarDigitalTwin emits a continuous stream of status and diagnostic messages—its current view of the vehicle. For this stage, every such message is written to &lt;strong&gt;&lt;code&gt;stdout&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt;, which acts as the default sink and serves as a simple dashboard while the prototype runs.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;how-to-run&quot;&gt;How to run&lt;&#x2F;h3&gt;
+&lt;p&gt;You need a Linux host with &lt;strong&gt;SocketCAN&lt;&#x2F;strong&gt; and a Rust toolchain. The prototype does not fold everything into one launcher: &lt;strong&gt;four separate bash shells&lt;&#x2F;strong&gt; are required—one to bring up the virtual bus, and one each for the three executables.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Shell 1 — CAN interface (&lt;code&gt;vcan0&lt;&#x2F;code&gt;).&lt;&#x2F;strong&gt; Create and raise the virtual CAN device once (sudo as needed):&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;sudo&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; modprobe vcan&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;sudo&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; ip link add dev vcan0 type vcan&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; 2&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt;&#x2F;dev&#x2F;null&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; ||&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;&quot;&gt; true&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;sudo&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; ip link set up vcan0&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Leave this shell free, or use it only for setup; the link stays up until you delete it.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Shell 2 — Emulator&lt;&#x2F;strong&gt; (sensor telemetry onto the bus):&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;cargo&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; run&lt;&#x2F;span&gt;&lt;span style=&quot;color: #BD93F9;&quot;&gt; -p&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; emulator&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;&lt;strong&gt;Shell 3 — FrontHeadlamp Assembly&lt;&#x2F;strong&gt; (zonal ECU; ACK&#x2F;NACK on the bus):&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;cargo&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; run&lt;&#x2F;span&gt;&lt;span style=&quot;color: #BD93F9;&quot;&gt; -p&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; front_headlamp_actuator&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;&lt;strong&gt;Shell 4 — Gateway&lt;&#x2F;strong&gt; (digital twin + CAN ingress&#x2F;egress; dashboard on stdout):&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;cargo&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; run&lt;&#x2F;span&gt;&lt;span style=&quot;color: #BD93F9;&quot;&gt; -p&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; gateway&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Start &lt;strong&gt;Shell 1&lt;&#x2F;strong&gt; first, then &lt;strong&gt;2&lt;&#x2F;strong&gt; and &lt;strong&gt;3&lt;&#x2F;strong&gt;, then &lt;strong&gt;4&lt;&#x2F;strong&gt; so the bus and body ECU are ready before the gateway attaches. Useful gateway flags: &lt;code&gt;--print-timer-tick&lt;&#x2F;code&gt;, &lt;code&gt;--print-transitions&lt;&#x2F;code&gt;, &lt;code&gt;--trace-actuation-ingress&lt;&#x2F;code&gt; (see the &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_1&#x2F;blob&#x2F;main&#x2F;README.md&quot;&gt;project README&lt;&#x2F;a&gt;). Stop with &lt;code&gt;Ctrl+C&lt;&#x2F;code&gt; in each process shell; tear down the interface when finished: &lt;code&gt;sudo ip link del vcan0&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;demo-screenshots&quot;&gt;Demo screenshots&lt;&#x2F;h3&gt;
+&lt;p&gt;Still frames from a live three-process run on &lt;code&gt;vcan0&lt;&#x2F;code&gt; (emulator, gateway, front-headlamp actuator). Both show the same gateway &lt;strong&gt;stdout&lt;&#x2F;strong&gt; surface—FSM transitions, RPM&#x2F;lux telemetry, and (when lighting rules fire) headlamp actuation—under different ambient-light conditions. (Full-size copies also live in the &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_1&#x2F;blob&#x2F;main&#x2F;README.md#demo-screenshots&quot;&gt;project README&lt;&#x2F;a&gt;.)&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Daylight band (headlamp off)&lt;&#x2F;strong&gt; — ambient lux stays above the OFF threshold (&lt;code&gt;LUX_OFF&lt;&#x2F;code&gt; 860). The twin keeps &lt;code&gt;LightingState::Off&lt;&#x2F;code&gt;; the gateway log has no headlamp CMD or ACK&#x2F;NACK lines.&lt;&#x2F;p&gt;
+&lt;img src=&quot;runtime-screenshot-no-headlamp.png&quot; alt=&quot;Gateway run in daylight — headlamp off, no actuation traffic&quot; title=&quot;Gateway run in daylight — headlamp off, no actuation traffic&quot; width=&quot;720&quot;&gt;
+&lt;p&gt;&lt;strong&gt;Tunnel &#x2F; dim band (headlamp on)&lt;&#x2F;strong&gt; — lux falls through the ON threshold (&lt;code&gt;LUX_ON&lt;&#x2F;code&gt; 840), the twin requests ON, the gateway sends a headlamp CMD on CAN, and the actuator reply appears as a positive ACK (or NACK &#x2F; timeout on failure paths).&lt;&#x2F;p&gt;
+&lt;img src=&quot;runtime-screenshot-with-headlamp.png&quot; alt=&quot;Gateway run in low lux — headlamp ON requested and ACK&#x27;d&quot; title=&quot;Gateway run in low lux — headlamp ON requested and ACK&#x27;d&quot; width=&quot;720&quot;&gt;
+&lt;h3 id=&quot;summary&quot;&gt;Summary&lt;&#x2F;h3&gt;
+&lt;p&gt;&lt;strong&gt;What this phase achieved&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Moved from a &lt;strong&gt;two-process&lt;&#x2F;strong&gt; demo (gateway + emulator) with an &lt;strong&gt;in-gateway headlamp stub&lt;&#x2F;strong&gt; to a &lt;strong&gt;bus-centric&lt;&#x2F;strong&gt; layout on Linux &lt;strong&gt;&lt;code&gt;vcan0&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt; (SocketCAN).&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Three executables&lt;&#x2F;strong&gt; on the wire: &lt;strong&gt;emulator&lt;&#x2F;strong&gt;, &lt;strong&gt;gateway&lt;&#x2F;strong&gt;, &lt;strong&gt;front_headlamp_actuator&lt;&#x2F;strong&gt;—telemetry and actuation share one CAN bus.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Gateway reads and writes CAN&lt;&#x2F;strong&gt;; the front headlamp is a &lt;strong&gt;separate zonal ECU&lt;&#x2F;strong&gt;, not a Tokio channel inside the gateway.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Closed-loop headlamp control&lt;&#x2F;strong&gt;: ambient lux → twin requests ON&#x2F;OFF → CMD on CAN → ACK&#x2F;NACK (or timeout) back through the same path.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Digital twin&lt;&#x2F;strong&gt; unchanged in spirit—&lt;strong&gt;actor + FSM&lt;&#x2F;strong&gt;—with behaviour driven only by &lt;strong&gt;&lt;code&gt;FsmEvent&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt; after Gateway&#x2F;Controller &lt;strong&gt;projection&lt;&#x2F;strong&gt; from raw CAN.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Telemetry&lt;&#x2F;strong&gt; focused on &lt;strong&gt;RPM&lt;&#x2F;strong&gt; and &lt;strong&gt;ambient lux&lt;&#x2F;strong&gt;; &lt;strong&gt;speed derived&lt;&#x2F;strong&gt; in the twin (no separate speed sensor on the bus in this milestone).&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Layered vocabularies&lt;&#x2F;strong&gt; (&lt;code&gt;PhysicalCarVocabulary&lt;&#x2F;code&gt; → &lt;code&gt;DigitalTwinCarVocabulary&lt;&#x2F;code&gt;) so the twin stays ignorant of frame layout.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;stdout&lt;&#x2F;strong&gt; as a live dashboard (see demo screenshots above)—no separate HMI yet.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;&lt;strong&gt;Where the code is&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Repository: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_1&quot;&gt;&lt;strong&gt;&lt;code&gt;sdv_simulation_1&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt;&lt;&#x2F;a&gt; on GitHub — clone and build with &lt;code&gt;cargo&lt;&#x2F;code&gt;.&lt;&#x2F;li&gt;
+&lt;li&gt;Operational reference: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_1&#x2F;blob&#x2F;main&#x2F;README.md&quot;&gt;project &lt;strong&gt;README&lt;&#x2F;strong&gt;&lt;&#x2F;a&gt; (crate layout, wire IDs, tests, flags, demo assets).&lt;&#x2F;li&gt;
+&lt;li&gt;Main crates: &lt;strong&gt;&lt;code&gt;emulator&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt;, &lt;strong&gt;&lt;code&gt;gateway&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt;, &lt;strong&gt;&lt;code&gt;front_headlamp_actuator&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt;, &lt;strong&gt;&lt;code&gt;common&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt; (FSM, actor, projection), &lt;strong&gt;&lt;code&gt;vehicle_device_bus&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt; (headlamp codec and ingress policy).&lt;&#x2F;li&gt;
+&lt;li&gt;This post is the &lt;strong&gt;narrative&lt;&#x2F;strong&gt;; the README on &lt;strong&gt;&lt;code&gt;main&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt; is the &lt;strong&gt;current truth&lt;&#x2F;strong&gt; for running and extending the prototype.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;&lt;strong&gt;Series:&lt;&#x2F;strong&gt; Prototyping a Software Defined Vehicle&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;← Previous&lt;&#x2F;strong&gt; &lt;a href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-1&#x2F;&quot;&gt;Stage I&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;All posts in this series: &lt;a href=&quot;&#x2F;tags&#x2F;sdv-prototype&#x2F;&quot;&gt;sdv-prototype&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Prototyping a Software Defined Vehicle - Stage I</title>
+        <published>2026-05-13T00:00:00+00:00</published>
+        <updated>2026-05-13T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-1/"/>
+        <id>https://nsengupta.github.io/blog/prototype-software-defined-vehicle-1/</id>
+        
+        <content type="html" xml:base="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-1/">&lt;h3 id=&quot;preface&quot;&gt;Preface&lt;&#x2F;h3&gt;
+&lt;p&gt;After having gone through several (not a very large number but not too few either) articles, blogs, video clips, presentations, &lt;em&gt;github&lt;&#x2F;em&gt; REPOs, and a couple of projects on the Eclipse SDV Project website, I have decided to try to build a prototype of a Digital Twin of a car. The objectives are:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Getting necessary exposure to the design approach taken by experts in the world of Sofware Defined Vehicle (SDV)&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;Applying whatever I learn, to realize a software-based manifestation&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;Incorporating some of the components&#x2F;services&#x2F;libraries that Eclipse SDV site is offering, in my project to get a better hold on those&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;Soliciting views&#x2F;feedback from the experts&#x2F;peeers in the field about the prototype, to fill in the gaps in my understanding&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;h3 id=&quot;what-do-i-intend-to-model&quot;&gt;What do I intend to model?&lt;&#x2F;h3&gt;
+&lt;p&gt;In short, a Digital Twin of a car!&lt;&#x2F;p&gt;
+&lt;p&gt;The assumption is that the physical world of the car is represented in its digital twin. This digital twin holds the virtual state of the entire car, captures telemetery and other data that are generated and also, actuates a particular device based upon the current state and information that arrives from devices.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Note: Obviously, this is very much simplistic in nature and details. I plan to expand and refine it as we go along.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;pictorially-speaking-1&quot;&gt;Pictorially speaking .. (1)&lt;&#x2F;h3&gt;
+&lt;p&gt;Here is a simple, first-cut schematic representation:&lt;&#x2F;p&gt;
+&lt;img title=&quot;&quot; src=&quot;SDV-Blog-Inputs-1.jpg&quot; alt=&quot;&quot; width=&quot;516&quot;&gt;
+&lt;p&gt;The intent is clear. Sensors push (telemetry) data to a CAN Bus. The Actuator receives commands through the same CAN Bus. The Digital Twin receives events through the same CAN Bus, processes them, adjusts its state-elements, and sends actuation commands, as and when applicable.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;the-software-structure&quot;&gt;The software structure&lt;&#x2F;h3&gt;
+&lt;p&gt;&lt;strong&gt;CAN Bus&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;The &lt;strong&gt;CAN Bus&lt;&#x2F;strong&gt; is a kind of a Central Nervous System. As such, the CAN Bus allows a car&#x27;s various components to communicate in real-time, by  sending and receiving signals.&lt;&#x2F;p&gt;
+&lt;p&gt;My Laptop runs on Ubuntu Linux 22.10. Linux provides a robust, native CAN Emulation through its Virtual CAN ( &lt;em&gt;vcan&lt;&#x2F;em&gt; ) and SocketCAN. I am using this built-in facility&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;&lt;strong&gt;Digital Twin&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;The Digitial Twin is meant to hold an correct and most recent impression of the &#x27;state&#x27; of the &lt;strong&gt;Physical-world Car&lt;&#x2F;strong&gt;. As the car starts, and moves, various parts of the car begins to generate signals. Based on those signals, the Digital Twin takes actions in some cases, and just reports in other cases. Moreover, It remembers what has just happened, because its future action is quitely likely to depend on that past signal.&lt;&#x2F;p&gt;
+&lt;p&gt;I have modeled the DigitalTwin as an &lt;em&gt;Actor&lt;&#x2F;em&gt; at its core (and an FSM, discussed in the next section). An Actor&#x27;s  core principles of  (1) ability to process messages passed asynchronously and (2) encapsulating its own &#x27;state&#x27; (collection of variables that collectively decides what the next step should be), are the reasons for which I have chosen it. Every signal is seen as an Event that reaches the Digital Twin; the Digital Twin acts upon it and prepares itself for the next event (whatever that event may be).&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;&lt;strong&gt;Finite State Machine (FSM)&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;What do I mean by &#x27;prepares itself for the next event&#x27;? Well, the Physical-world Car is generating the signals continuously and pushing them through the CAN Bus. The Digital Twin is receiving them in random order and processing them. The results are held inside the Digital Twin. At any given point in time, the collection of these results is considered the &#x27;current state&#x27; of the Physical-world Car, as seen by its Digital Twin. This prepares the Digital Twin for the next signal (event, if you will) that arrives. The logic that is used to process the next signal depends on what has happened in the past; in other words, the &#x27;current state&#x27;.&lt;&#x2F;p&gt;
+&lt;p&gt;Unsurprisingly, this leads to framing the Digital Twin as a Finite State Machine. Together with the Actor, the State Machine bring the &#x27;reactive nature&#x27; to the Digital Twin; based upon the &#x27;current state&#x27; and the &#x27;next signal&#x27;, the Digital Twin decides what to do, and what to be prepared for.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;&lt;strong&gt;Car part emulators&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;In the first version of the Digital Twin, I am assuming that the Physical-world Car, generates continuous telemetry about the current Speed and RPM. Additionally, it generates data about visibility around the car and takes command to switch on (or off) the front lights (viz., an &lt;u&gt;actuator&lt;&#x2F;u&gt;) .&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;pictorially-speaking-2&quot;&gt;Pictorially speaking .. (2)&lt;&#x2F;h3&gt;
+&lt;img title=&quot;&quot; src=&quot;SDV-Blog-Inputs-2.jpg&quot; alt=&quot;&quot; width=&quot;405&quot;&gt;
+&lt;h4 id=&quot;note-elaborating-the-diagram&quot;&gt;Note elaborating the diagram&lt;&#x2F;h4&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;CAN Bus is run from the command line, as a virtual network device (accessibgle as a socket) named &#x27;vcan0&#x27; that behaves as a CAN Interface on the machine (refer to README for details).&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;For the ease of running the prototype, I have two executables: (1) Gateway and (2) Emulator. Each runs in its own shell and communicates between themselves using the &#x27;vcan0&#x27; virtual network interface.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;Gateway holds the entire DigitalTwin as a component inside it.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;Emulator generates telemetry data and writes these to the CAN Bus. Gateway reads, interpretes, transforms and sends these to the DigitialTwin thru the Controller.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;The DigitalTwin pushes informationally richer messages based on the telemetry data to a channel that displays them (default: the &lt;em&gt;stdout&lt;&#x2F;em&gt; ). Addtionally, it executes some arbitrary (yet realistic) logic to generate commands for the &lt;em&gt;front lights&lt;&#x2F;em&gt; when the visibility goes below a hard-coded threshold.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;This works fine. But, the design needs quite a few improvements. We will take this up in the next blogs.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;&lt;strong&gt;Series:&lt;&#x2F;strong&gt; Prototyping a Software Defined Vehicle&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Next →&lt;&#x2F;strong&gt; &lt;a href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-2&#x2F;&quot;&gt;Stage II&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;All posts in this series: &lt;a href=&quot;&#x2F;tags&#x2F;sdv-prototype&#x2F;&quot;&gt;sdv-prototype&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
+</feed>
