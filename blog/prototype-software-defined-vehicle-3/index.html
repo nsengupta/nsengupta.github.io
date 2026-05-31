@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  
+  
+  <meta name="description" content="Software Programming, reflections, soliloquys " />
+  
+  
+
+  <title>
+    
+    Prototyping a Software Defined Vehicle - Stage III
+    
+</title>
+
+  
+  <link rel="stylesheet" href="https://nsengupta.github.io/site.css">
+  
+
+  
+  
+</head>
+
+<body class="hack dark main container">
+  
+
+<style>
+body.container {
+    max-width: 68rem !important;
+}
+
+article p,
+article li,
+main p,
+main li {
+    font-size: 1.08rem !important;
+    line-height: 1.65 !important;
+}
+
+article h1,
+main h1 {
+    font-size: 1.8rem !important;
+    line-height: 1.3 !important;
+}
+
+article h2,
+main h2 {
+    font-size: 1.5rem !important;
+}
+
+article h3,
+main h3 {
+    font-size: 1.25rem !important;
+}
+
+/* Remove the gigantic ===== decoration */
+.hack h1:after {
+    content: "" !important;
+}
+
+/* Remove Markdown-style heading prefixes (#, ##, ###, etc.) */
+.hack h2:before,
+.hack h3:before,
+.hack h4:before,
+.hack h5:before,
+.hack h6:before {
+    content: "" !important;
+}
+</style>
+
+
+    
+        
+  
+  <header class="nav-header">
+    <nav itemscope itemtype="http://schema.org/SiteNavigationElement" class="navbar">
+      <div class="nav-links">
+        
+        <a itemprop="url"
+          class=""
+          href="/">
+          <span itemprop="name">Home</span></a>
+        
+        <a itemprop="url"
+          class=""
+          href="/blog">
+          <span itemprop="name">Technical Blog</span></a>
+        
+      </div>
+    </nav>
+    
+
+  </header>
+  
+  
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">Prototyping a Software Defined Vehicle - Stage III</h1>
+        <span class="muted">
+    <svg class="icon i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>5 minute read</span>
+    <svg class="icon i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    Published: 2026-05-28
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <h3 id="preface">Preface</h3>
+<p>The preceding <a href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-2/">stage</a> brought us here — three processes on one CAN bus, a gateway that owns the digital twin, and a body ECU that closes the headlamp loop with ACK/NACK:</p>
+<img src="SDV-Blog-Inputs-4.jpg" title="" alt="Stage II arrangement — emulator, gateway, front-headlamp actuator on vcan0" width="500">
+<p><strong>Stage II made the control loop work on the wire.</strong> Stage III makes the twin <strong>decomposable, observable, and provable</strong> — without changing what we see when we run the demo. Iteration 1 and Iteration 2 produce the same stdout: same FSM transitions, headlamp cycles, buzzer at speed limits. We pay down structural debt so the next iteration can give <strong>each assembly its own actor</strong> without a rewrite.</p>
+<hr />
+<h3 id="what-actually-changed-and-what-did-not">What actually changed (and what did not)</h3>
+<p><strong>Unchanged:</strong> three processes on <code>vcan0</code>, the same wire IDs and FSM states, the rule that the twin emits <strong>intent</strong> not raw I/O.</p>
+<p><strong>Changed underneath:</strong> flat <code>VehicleContext</code> → <strong>per-assembly contexts</strong>; monolithic <code>step.rs</code> → thin <strong>orchestrator</strong>; transition records → <strong>portable audit ledger</strong>; invariants → <strong>enforce / announce / detect</strong>; twin → private fields and a single FSM mutator; live-run fixes for silent ACK success and logging off the protocol path.</p>
+<p>Details, wire tables, and file paths live in the <a rel="external" href="https://github.com/nsengupta/sdv_simulation_2/blob/main/README.md"><strong>Iteration 2 README</strong></a>.</p>
+<hr />
+<h3 id="design-decision-1-decompose-state-to-mirror-the-car-s-zones">Design decision 1 — Decompose state to mirror the car's zones</h3>
+<p>Iteration 1 had one flat context and a ~238-line <code>step.rs</code>. Iteration 2 introduces <strong>assemblies</strong> — each owns its data and the rules over it:</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="rust"><span class="giallo-l"><span style="color: #FF79C6;">pub struct</span><span style="color: #8BE9FD;font-style: italic;"> VehicleContext</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">    pub</span><span> powertrain</span><span style="color: #FF79C6;">:</span><span style="color: #8BE9FD;font-style: italic;"> PowertrainContext</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">    pub</span><span> health</span><span style="color: #FF79C6;">:</span><span style="color: #8BE9FD;font-style: italic;">     VehicleHealthContext</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">    pub</span><span> visibility</span><span style="color: #FF79C6;">:</span><span style="color: #8BE9FD;font-style: italic;"> VisibilityContext</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">    pub</span><span> headlamp</span><span style="color: #FF79C6;">:</span><span style="color: #8BE9FD;font-style: italic;">   HeadlampContext</span><span>,</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p><code>step</code> decides <em>when</em> to call each assembly; the assembly decides <em>how</em>. A real SDV is not one blob — powertrain, lighting, and health sit in different zones. This is groundwork for <strong>each assembly having its own actor</strong>, not a monolithic twin holding everything.</p>
+<hr />
+<h3 id="design-decision-2-two-observation-streams-two-jobs">Design decision 2 — Two observation streams, two jobs</h3>
+<table><thead><tr><th></th><th>Transition ledger</th><th>Diagnostic log</th></tr></thead><tbody>
+<tr><td>Delivery</td><td>bounded, lossless-or-error</td><td>unbounded, best-effort</td></tr>
+<tr><td>Ordering</td><td>total, one sequence per event</td><td>none guaranteed</td></tr>
+<tr><td>Cadence</td><td>one record per FSM event</td><td>many sources (init, ticks, failures, meta)</td></tr>
+<tr><td>Audience</td><td>replay, audit, offline checks</td><td>console / logs</td></tr>
+</tbody></table>
+<p>The twin writes through small <strong>sink</strong> interfaces. We keep the streams separate because diagnostics cannot be reconstructed from the ledger alone — and when <strong>each assembly has its own actor</strong>, that split matters even more.</p>
+<hr />
+<h3 id="design-decision-3-step-coordinates-the-actor-owns-the-turn">Design decision 3 — <code>step</code> coordinates; the actor owns the turn</h3>
+<p>One mailbox message → one pure decision → persist → record → execute side effects → only then the next event. Actions are <strong>intended</strong> outputs from <code>step</code>, not a second mutation path:</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="rust"><span class="giallo-l"><span style="color: #FF79C6;">let</span><span> result</span><span style="color: #FF79C6;"> =</span><span> fsm</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">step</span><span>(state, ctx,</span><span style="color: #FF79C6;"> &amp;</span><span>evt, now);</span></span>
+<span class="giallo-l"><span>runtime_state</span><span style="color: #FF79C6;">.</span><span>twin_car</span><span style="color: #FF79C6;">.</span><span style="color: #50FA7B;">apply_step</span><span>(result</span><span style="color: #FF79C6;">.</span><span>next_state, result</span><span style="color: #FF79C6;">.</span><span>modified_ctx);</span></span>
+<span class="giallo-l"><span style="color: #BD93F9;font-style: italic;">Self</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">try_emit_transition_record</span><span>(</span><span style="color: #FF79C6;">...</span><span>, result</span><span style="color: #FF79C6;">.</span><span>transition_record);</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">for</span><span> action</span><span style="color: #FF79C6;"> in</span><span> result</span><span style="color: #FF79C6;">.</span><span>actions {</span><span style="color: #6272A4;"> /* execute — immutable twin ref */</span><span> }</span></span></code></pre>
+<p>The ledger captures what we <em>decided</em> before actuation runs — not whether it succeeded.</p>
+<p><strong>Doesn't <code>RequestFrontHeadlampOn</code> change state immediately?</strong> The lighting state changes inside <code>step()</code> — e.g. <code>Off</code> → <code>OnRequested</code> — and the action is the outbound command. The lamp is not <code>On</code> until an ACK arrives in a <strong>later</strong> <code>step()</code>. Executing the action sends CAN traffic; it does not mutate the twin. Side effects cannot re-enter <code>step()</code> in the same turn; ACK/NACK comes back as a new ingress event.</p>
+<hr />
+<h3 id="design-decision-4-time-correctness-and-control-policy">Design decision 4 — Time, correctness, and control policy</h3>
+<p><strong>Two clocks.</strong> Monotonic time inside the FSM; wall-clock timestamps in the serializable mirror for offline replay.</p>
+<p><strong>Two sequence numbers</strong> — ledger position (every FSM event) vs command position (each correlated headlamp command on CAN). Snapshots return the twin plus a <strong>sequence stamp</strong>; there is no mutating "refresh" API.</p>
+<p><strong>Enforce / announce / detect.</strong> Clamp in the FSM; warnings on the diagnostic log, not the actuation path; named state laws checked offline over a captured ledger — never on the live hot path. The twin type has private fields and a single <code>apply_step(...)</code> mutator.</p>
+<p><strong>Anti-flap</strong> — both guards live in the twin; the emulator only sends raw telemetry:</p>
+<table><thead><tr><th>Boundary</th><th>Mechanism</th><th>Enter / exit (simplified)</th></tr></thead><tbody>
+<tr><td><strong>Lux → headlamp</strong></td><td>value <strong>deadband</strong></td><td>ON at <code>lux ≤ 840</code>; OFF at <code>lux ≥ 860</code>; hold in <code>(840, 860)</code></td></tr>
+<tr><td><strong>Speed → <code>ExtremeOperationWarning</code></strong></td><td>temporal <strong>latch</strong></td><td>enter at <code>speed &gt; 160</code>; leave only after <strong>≥ 5 s dwell AND</strong> hazard cleared</td></tr>
+</tbody></table>
+<p>Lux wobbles in our emulator, so a deadband stops relay-style flipping. Speed warnings <strong>latch</strong> until the hazard clears and five seconds have passed — a minimum dwell, not an auto-clear timer. Wire ID <code>0x101</code> (observed speed) is decoded but not fed to the twin today; speed comes from RPM until a future ECU path lands.</p>
+<hr />
+<h3 id="lessons-from-a-live-run">Lessons from a live run</h3>
+<p>Pressing <code>Ctrl-S</code> / <code>Ctrl-Q</code> froze stdout (XOFF/XON) and surfaced two gaps:</p>
+<ol>
+<li><strong>Silent success.</strong> A clean headlamp ACK had no human-visible line; the ledger already recorded the context change. The actor now compares headlamp state before and after <code>step()</code> and emits a confirmation when <code>*Requested → On/Off</code> settles.</li>
+</ol>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="rust"><span class="giallo-l"><span style="color: #FF79C6;">let</span><span> headlamp_before</span><span style="color: #FF79C6;"> =</span><span> runtime_state</span><span style="color: #FF79C6;">.</span><span>twin_car</span><span style="color: #FF79C6;">.</span><span style="color: #50FA7B;">context</span><span>()</span><span style="color: #FF79C6;">.</span><span>headlamp</span><span style="color: #FF79C6;">.</span><span>state;</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">let</span><span> result</span><span style="color: #FF79C6;"> =</span><span> fsm</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">step</span><span>(</span><span style="color: #FF79C6;">...</span><span>);</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">let</span><span> headlamp_after</span><span style="color: #FF79C6;"> =</span><span> result</span><span style="color: #FF79C6;">.</span><span>modified_ctx</span><span style="color: #FF79C6;">.</span><span>headlamp</span><span style="color: #FF79C6;">.</span><span>state;</span></span>
+<span class="giallo-l"><span style="color: #6272A4;">// ... persist, record, execute ...</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">if let</span><span style="color: #8BE9FD;font-style: italic;"> Some</span><span>(direction)</span><span style="color: #FF79C6;"> =</span><span style="color: #50FA7B;"> front_headlamp_confirmed_direction</span><span>(headlamp_before, headlamp_after) {</span></span>
+<span class="giallo-l"><span>    sink</span><span style="color: #FF79C6;">.</span><span style="color: #50FA7B;">try_emit</span><span>(</span><span style="color: #50FA7B;">diag_front_headlamp_confirmed</span><span>(identity, direction));</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<ol start="2">
+<li><strong>Logging on the hot path.</strong> Synchronous <code>println</code> in the gateway and actuator could stall CAN handling under console back-pressure. Both now use bounded side-channels and non-blocking <code>try_send</code> (drop-on-full); the gateway delivers the ACK to the twin <strong>before</strong> logging.</li>
+</ol>
+<hr />
+<h3 id="what-comes-next">What comes next</h3>
+<p><strong>Each assembly having its own actor</strong> moves to a fresh cloned project: parent FSM actor, child actors per assembly, a single-writer ledger, correlation IDs end-to-end, diagnostics derived from the ledger, and an actuation child for buzzer/egress I/O. See the <a rel="external" href="https://github.com/nsengupta/sdv_simulation_2#roadmap">roadmap</a>.</p>
+<hr />
+<h3 id="summary">Summary</h3>
+<p>Stage III is a refactor-and-contracts milestone: <strong>same demo, stronger internals</strong> — assemblies, a designed observation split, a strict turn contract, explicit anti-flap policy, and live-run hardening. The next stage splits the monolith along the assembly seams we drew here.</p>
+<hr />
+<p><strong>Where the code is</strong></p>
+<ul>
+<li>Repository: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_2"><strong><code>sdv_simulation_2</code></strong></a> on GitHub — builds on <a rel="external" href="https://github.com/nsengupta/sdv_simulation_1"><strong><code>sdv_simulation_1</code></strong></a>.</li>
+<li>Operational reference: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_2/blob/main/README.md">project <strong>README</strong></a> (crate layout, wire IDs, tests, flags, demo assets).</li>
+<li>This post is the <strong>narrative</strong>; the README on <strong><code>main</code></strong> is the <strong>current truth</strong> for running and extending the prototype.</li>
+</ul>
+<hr />
+<p><strong>Series:</strong> Prototyping a Software Defined Vehicle</p>
+<p><strong>← Previous</strong> <a href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-2/">Stage II</a></p>
+<p>All posts in this series: <a href="/tags/sdv-prototype/">sdv-prototype</a></p>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                
+                    
+                    tagged
+                    
+                        <a href="https://nsengupta.github.io/tags/sdv-prototype/">sdv-prototype</a>
+                        
+                    
+                
+            </p>
+            
+            
+        </footer>
+    
+</article>
+
+
+
+
+
+  <!-- optional scripts -->
+  
+  
+
+  
+
+  
+
+  
+</body>
+
+</html>

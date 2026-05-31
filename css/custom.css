@@ -72,3 +72,11 @@ body.container main h1::after,
 .hack h1:after {
     content: "" !important;
 }
+
+.hack h2::before,
+.hack h3::before,
+.hack h4::before,
+.hack h5::before,
+.hack h6::before {
+    content: none;
+}
