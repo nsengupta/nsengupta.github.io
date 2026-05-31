@@ -29,6 +29,27 @@
 body.container {
     max-width: 90rem !important;
 }
+
+/* Remove Markdown-style heading prefixes */
+.hack h2:before,
+.hack h3:before,
+.hack h4:before,
+.hack h5:before,
+.hack h6:before {
+    content: "" !important;
+}
+
+/* Homepage post listing: keep title and metadata together */
+article > header > h2 {
+    margin-bottom: 0.25rem !important;
+}
+
+/* Add space between blog entries */
+article {
+    margin-bottom: 1.5rem;
+}
+
+
 </style>
 
 <h2 id="programming-reflections-soliloquys">Programming, reflections, soliloquys<a class="zola-anchor" href="#programming-reflections-soliloquys" aria-label="Anchor link for: programming-reflections-soliloquys">🔗</a></h2>
