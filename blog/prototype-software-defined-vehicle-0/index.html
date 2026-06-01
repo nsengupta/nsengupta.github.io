@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  
+  
+  <meta name="description" content="Software Programming, reflections, soliloquys " />
+  
+  
+
+  <title>
+    
+    Prototyping a Software Defined Vehicle - Stage 0
+    
+</title>
+
+  
+  <link rel="stylesheet" href="https://nsengupta.github.io/site.css">
+  
+
+  
+  
+</head>
+
+<body class="hack dark main container">
+  
+
+<style>
+body.container {
+    max-width: 68rem !important;
+}
+
+article p,
+article li,
+main p,
+main li {
+    font-size: 1.08rem !important;
+    line-height: 1.65 !important;
+}
+
+article h1,
+main h1 {
+    font-size: 1.8rem !important;
+    line-height: 1.3 !important;
+}
+
+article h2,
+main h2 {
+    font-size: 1.5rem !important;
+}
+
+article h3,
+main h3 {
+    font-size: 1.25rem !important;
+}
+
+/* Remove the gigantic ===== decoration */
+.hack h1:after {
+    content: "" !important;
+}
+
+/* Remove Markdown-style heading prefixes (#, ##, ###, etc.) */
+.hack h2:before,
+.hack h3:before,
+.hack h4:before,
+.hack h5:before,
+.hack h6:before {
+    content: "" !important;
+}
+</style>
+
+
+    
+        
+  
+  <header class="nav-header">
+    <nav itemscope itemtype="http://schema.org/SiteNavigationElement" class="navbar">
+      <div class="nav-links">
+        
+        <a itemprop="url"
+          class=""
+          href="/">
+          <span itemprop="name">Home</span></a>
+        
+        <a itemprop="url"
+          class=""
+          href="/blog">
+          <span itemprop="name">Technical Blog</span></a>
+        
+      </div>
+    </nav>
+    
+
+  </header>
+  
+  
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">Prototyping a Software Defined Vehicle - Stage 0</h1>
+        <span class="muted">
+    <svg class="icon i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>5 minute read</span>
+    <svg class="icon i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    Published: 2026-05-10
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <h3 id="preface">Preface</h3>
+<p>After having gone through several (not a very large number but not too few either) articles, blogs, video clips, presentations, <em>github</em> REPOs, and a couple of projects on the Eclipse SDV Project website, I have decided to try to build a prototype of a Digital Twin of a car. The objectives are:</p>
+<ul>
+<li>
+<p>Getting necessary exposure to the design approach taken by experts in the world of Sofware Defined Vehicle (SDV)</p>
+</li>
+<li>
+<p>Applying whatever I learn, to realize a software-based manifestation</p>
+</li>
+<li>
+<p>Incorporating some of the components/services/libraries that Eclipse SDV site is offering, in my project to get a better hold on those</p>
+</li>
+<li>
+<p>Soliciting views/feedback from the experts/peeers in the field about the prototype, to fill in the gaps in my understanding</p>
+</li>
+</ul>
+<h3 id="what-do-i-intend-to-model">What do I intend to model?</h3>
+<p>In short, a Digital Twin of a car!</p>
+<p>The assumption is that the physical world of the car is represented in its digital twin. This digital twin holds the virtual state of the entire car, captures telemetery and other data that are generated and also, actuates a particular device based upon the current state and information that arrives from devices.</p>
+<hr />
+<p>Note: Obviously, this is very much simplistic in nature and details. I plan to expand and refine it as we go along.</p>
+<hr />
+<h3 id="pictorially-speaking-1">Pictorially speaking .. (1)</h3>
+<p>Here is a simple, first-cut schematic representation:</p>
+<img title="" src="SDV-Blog-Inputs-1.jpg" alt="" width="516">
+<p>The intent is clear. Sensors push (telemetry) data to a CAN Bus. The Actuator receives commands through the same CAN Bus. The Digital Twin receives events through the same CAN Bus, processes them, adjusts its state-elements, and sends actuation commands, as and when applicable.</p>
+<hr />
+<h3 id="the-software-structure">The software structure</h3>
+<p><strong>CAN Bus</strong></p>
+<p>The <strong>CAN Bus</strong> is a kind of a Central Nervous System. As such, the CAN Bus allows a car's various components to communicate in real-time, by  sending and receiving signals.</p>
+<p>My Laptop runs on Ubuntu Linux 22.10. Linux provides a robust, native CAN Emulation through its Virtual CAN ( <em>vcan</em> ) and SocketCAN. I am using this built-in facility</p>
+<hr />
+<p><strong>Digital Twin</strong></p>
+<p>The Digitial Twin is meant to hold an correct and most recent impression of the 'state' of the <strong>Physical-world Car</strong>. As the car starts, and moves, various parts of the car begins to generate signals. Based on those signals, the Digital Twin takes actions in some cases, and just reports in other cases. Moreover, It remembers what has just happened, because its future action is quitely likely to depend on that past signal.</p>
+<p>I have modeled the DigitalTwin as an <em>Actor</em> at its core (and an FSM, discussed in the next section). An Actor's  core principles of  (1) ability to process messages passed asynchronously and (2) encapsulating its own 'state' (collection of variables that collectively decides what the next step should be), are the reasons for which I have chosen it. Every signal is seen as an Event that reaches the Digital Twin; the Digital Twin acts upon it and prepares itself for the next event (whatever that event may be).</p>
+<hr />
+<p><strong>Finite State Machine (FSM)</strong></p>
+<p>What do I mean by 'prepares itself for the next event'? Well, the Physical-world Car is generating the signals continuously and pushing them through the CAN Bus. The Digital Twin is receiving them in random order and processing them. The results are held inside the Digital Twin. At any given point in time, the collection of these results is considered the 'current state' of the Physical-world Car, as seen by its Digital Twin. This prepares the Digital Twin for the next signal (event, if you will) that arrives. The logic that is used to process the next signal depends on what has happened in the past; in other words, the 'current state'.</p>
+<p>Unsurprisingly, this leads to framing the Digital Twin as a Finite State Machine. Together with the Actor, the State Machine bring the 'reactive nature' to the Digital Twin; based upon the 'current state' and the 'next signal', the Digital Twin decides what to do, and what to be prepared for.</p>
+<hr />
+<p><strong>Car part emulators</strong></p>
+<p>In the first version of the Digital Twin, I am assuming that the Physical-world Car, generates continuous telemetry about the current Speed and RPM. Additionally, it generates data about visibility around the car and takes command to switch on (or off) the front lights (viz., an <u>actuator</u>) .</p>
+<hr />
+<h3 id="pictorially-speaking-2">Pictorially speaking .. (2)</h3>
+<img title="" src="SDV-Blog-Inputs-2.jpg" alt="" width="405">
+<h4 id="note-elaborating-the-diagram">Note elaborating the diagram</h4>
+<ul>
+<li>
+<p>CAN Bus is run from the command line, as a virtual network device (accessibgle as a socket) named 'vcan0' that behaves as a CAN Interface on the machine (refer to README for details).</p>
+</li>
+<li>
+<p>For the ease of running the prototype, I have two executables: (1) Gateway and (2) Emulator. Each runs in its own shell and communicates between themselves using the 'vcan0' virtual network interface.</p>
+</li>
+<li>
+<p>Gateway holds the entire DigitalTwin as a component inside it.</p>
+</li>
+<li>
+<p>Emulator generates telemetry data and writes these to the CAN Bus. Gateway reads, interpretes, transforms and sends these to the DigitialTwin thru the Controller.</p>
+</li>
+<li>
+<p>The DigitalTwin pushes informationally richer messages based on the telemetry data to a channel that displays them (default: the <em>stdout</em> ). Addtionally, it executes some arbitrary (yet realistic) logic to generate commands for the <em>front lights</em> when the visibility goes below a hard-coded threshold.</p>
+</li>
+</ul>
+<hr />
+<p>This works fine. But, the design needs quite a few improvements. We will take this up in the next blogs.</p>
+<hr />
+<p><strong>Series:</strong> Prototyping a Software Defined Vehicle</p>
+<p><strong>Next →</strong> <a href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-2/">Stage II</a></p>
+<p>All posts in this series: <a href="/tags/sdv-prototype/">sdv-prototype</a></p>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                
+                    
+                    tagged
+                    
+                        <a href="https://nsengupta.github.io/tags/sdv-prototype/">sdv-prototype</a>
+                        
+                    
+                
+            </p>
+            
+            
+        </footer>
+    
+</article>
+
+
+
+
+
+  <!-- optional scripts -->
+  
+  
+
+  
+
+  
+
+  
+</body>
+
+</html>

@@ -8,7 +8,7 @@
     <updated>2026-05-28T00:00:00+00:00</updated>
     <id>https://nsengupta.github.io/tags/sdv-prototype/atom.xml</id>
     <entry xml:lang="en">
-        <title>Prototyping a Software Defined Vehicle - Stage III</title>
+        <title>Prototyping a Software Defined Vehicle - Stage II</title>
         <published>2026-05-28T00:00:00+00:00</published>
         <updated>2026-05-28T00:00:00+00:00</updated>
         
@@ -20,13 +20,13 @@
           </name>
         </author>
         
-        <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-3/"/>
-        <id>https://nsengupta.github.io/blog/prototype-software-defined-vehicle-3/</id>
+        <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-2/"/>
+        <id>https://nsengupta.github.io/blog/prototype-software-defined-vehicle-2/</id>
         
-        <content type="html" xml:base="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-3/">&lt;h3 id=&quot;preface&quot;&gt;Preface&lt;&#x2F;h3&gt;
-&lt;p&gt;The preceding &lt;a href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-2&#x2F;&quot;&gt;stage&lt;&#x2F;a&gt; brought us here — three processes on one CAN bus, a gateway that owns the digital twin, and a body ECU that closes the headlamp loop with ACK&#x2F;NACK:&lt;&#x2F;p&gt;
+        <content type="html" xml:base="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-2/">&lt;h3 id=&quot;preface&quot;&gt;Preface&lt;&#x2F;h3&gt;
+&lt;p&gt;The preceding &lt;a href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-1&#x2F;&quot;&gt;stage&lt;&#x2F;a&gt; brought us here — three processes on one CAN bus, a gateway that owns the digital twin, and a body ECU that closes the headlamp loop with ACK&#x2F;NACK:&lt;&#x2F;p&gt;
 &lt;img src=&quot;SDV-Blog-Inputs-4.jpg&quot; title=&quot;&quot; alt=&quot;Stage II arrangement — emulator, gateway, front-headlamp actuator on vcan0&quot; width=&quot;500&quot;&gt;
-&lt;p&gt;&lt;strong&gt;Stage II made the control loop work on the wire.&lt;&#x2F;strong&gt; Stage III makes the twin &lt;strong&gt;decomposable, observable, and provable&lt;&#x2F;strong&gt; — without changing what we see when we run the demo. Iteration 1 and Iteration 2 produce the same stdout: same FSM transitions, headlamp cycles, buzzer at speed limits. We pay down structural debt so the next iteration can give &lt;strong&gt;each assembly its own actor&lt;&#x2F;strong&gt; without a rewrite.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Stage I made the control loop work on the wire.&lt;&#x2F;strong&gt; Stage II makes the twin &lt;strong&gt;decomposable, observable, and provable&lt;&#x2F;strong&gt; — without changing what we see when we run the demo. Both the stages produce the same stdout: same FSM transitions, headlamp cycles, buzzer at speed limits. We pay down structural debt so the next iteration can give &lt;strong&gt;each assembly its own actor&lt;&#x2F;strong&gt; without a rewrite.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h3 id=&quot;what-actually-changed-and-what-did-not&quot;&gt;What actually changed (and what did not)&lt;&#x2F;h3&gt;
 &lt;p&gt;&lt;strong&gt;Unchanged:&lt;&#x2F;strong&gt; three processes on &lt;code&gt;vcan0&lt;&#x2F;code&gt;, the same wire IDs and FSM states, the rule that the twin emits &lt;strong&gt;intent&lt;&#x2F;strong&gt; not raw I&#x2F;O.&lt;&#x2F;p&gt;
@@ -108,7 +108,7 @@
         
     </entry>
     <entry xml:lang="en">
-        <title>Prototyping a Software Defined Vehicle - Stage II</title>
+        <title>Prototyping a Software Defined Vehicle - Stage I</title>
         <published>2026-05-21T00:00:00+00:00</published>
         <updated>2026-05-21T00:00:00+00:00</updated>
         
@@ -120,11 +120,11 @@
           </name>
         </author>
         
-        <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-2/"/>
-        <id>https://nsengupta.github.io/blog/prototype-software-defined-vehicle-2/</id>
+        <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-1/"/>
+        <id>https://nsengupta.github.io/blog/prototype-software-defined-vehicle-1/</id>
         
-        <content type="html" xml:base="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-2/">&lt;h3 id=&quot;preface&quot;&gt;Preface&lt;&#x2F;h3&gt;
-&lt;p&gt;From the previous &lt;a href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-1&#x2F;&quot;&gt;blog&lt;&#x2F;a&gt;, we have come to this arrangement:&lt;&#x2F;p&gt;
+        <content type="html" xml:base="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-1/">&lt;h3 id=&quot;preface&quot;&gt;Preface&lt;&#x2F;h3&gt;
+&lt;p&gt;From the previous &lt;a href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-0&#x2F;&quot;&gt;blog&lt;&#x2F;a&gt;, we have come to this arrangement:&lt;&#x2F;p&gt;
 &lt;img src=&quot;SDV-Blog-Inputs-2.jpg&quot; title=&quot;&quot; alt=&quot;Stage 1 arrangement (gateway + emulator)&quot; width=&quot;399&quot;&gt;
 &lt;p&gt;But, it is too simplistic and doesn&#x27;t represent how a modern car&#x27;s signals travel and are processed.&lt;&#x2F;p&gt;
 &lt;h3 id=&quot;what-should-change-frontlight-sensor-actuator&quot;&gt;What should change: Frontlight Sensor&#x2F;Actuator&lt;&#x2F;h3&gt;
@@ -300,7 +300,7 @@
         
     </entry>
     <entry xml:lang="en">
-        <title>Prototyping a Software Defined Vehicle - Stage I</title>
+        <title>Prototyping a Software Defined Vehicle - Stage 0</title>
         <published>2026-05-10T00:00:00+00:00</published>
         <updated>2026-05-10T00:00:00+00:00</updated>
         
@@ -312,10 +312,10 @@
           </name>
         </author>
         
-        <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-1/"/>
-        <id>https://nsengupta.github.io/blog/prototype-software-defined-vehicle-1/</id>
+        <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-0/"/>
+        <id>https://nsengupta.github.io/blog/prototype-software-defined-vehicle-0/</id>
         
-        <content type="html" xml:base="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-1/">&lt;h3 id=&quot;preface&quot;&gt;Preface&lt;&#x2F;h3&gt;
+        <content type="html" xml:base="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-0/">&lt;h3 id=&quot;preface&quot;&gt;Preface&lt;&#x2F;h3&gt;
 &lt;p&gt;After having gone through several (not a very large number but not too few either) articles, blogs, video clips, presentations, &lt;em&gt;github&lt;&#x2F;em&gt; REPOs, and a couple of projects on the Eclipse SDV Project website, I have decided to try to build a prototype of a Digital Twin of a car. The objectives are:&lt;&#x2F;p&gt;
 &lt;ul&gt;
 &lt;li&gt;

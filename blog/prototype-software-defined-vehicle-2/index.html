@@ -112,189 +112,97 @@ main h3 {
         <circle cx="16" cy="16" r="14"/>
         <path d="M16 8 L16 16 20 20"/>
     </svg>
-    <span>9 minute read</span>
+    <span>5 minute read</span>
     <svg class="icon i-edit" viewBox="0 0 32 32"
          width="16" height="16" fill="none" stroke="currentcolor"
          stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
         <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
     </svg>
 
-    Published: 2026-05-21
+    Published: 2026-05-28
 </span>
     </header>
     <div itemprop="articleBody">
       <h3 id="preface">Preface</h3>
-<p>From the previous <a href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-1/">blog</a>, we have come to this arrangement:</p>
-<img src="SDV-Blog-Inputs-2.jpg" title="" alt="Stage 1 arrangement (gateway + emulator)" width="399">
-<p>But, it is too simplistic and doesn't represent how a modern car's signals travel and are processed.</p>
-<h3 id="what-should-change-frontlight-sensor-actuator">What should change: Frontlight Sensor/Actuator</h3>
-<p>In the current arrangement, Frontlight Sensor and Actuator are two different components. The Sensor's data arrive through the Emulator.The command for the Actuator is received by an asynchronous code-block  behaving as the Frontlight itself. This asynchronous code-block is an adjunct to the Gateway in the picture.</p>
-<p>We want to be more accurate in making the connection. The ambient light sensor should tell the car if the visibility around (meaning, what the driver sees) has reduced. The FrontHeadlamp should be actuated accordingly; switched on or off, depending on the visibility.</p>
-<img title="" src="Schematic-2.png" alt="Frontlight sensor and actuator on CAN bus" width="396">
-<p>Again, this is incomplete, because:</p>
-<ul>
-<li>
-<p>FrontHeadlamp should be a separate component. The CarDogitalTwin should actuate it through the CAN Bus.</p>
-</li>
-<li>
-<p>CarDogitalTwin will like to know if the FrontHeadlamps are <em>indeed</em> switched on of off. It follows that the FrontHeadlamp must inform the CarDogitalTwin through the same CAN Bus, as well.</p>
-</li>
-</ul>
-<h3 id="what-should-change-gateway">What should change: Gateway</h3>
-<p>The current Gateway plays an important role.</p>
-<ul>
-<li>
-<p>It is capable of reading the CAN Bus. In fact, it is the only component that <em>reads</em> the CAN Bus. Tomorrow, it can read some other channel.</p>
-</li>
-<li>
-<p>It is capable of translating messages arriving through the CAN Bus, into internal messages, i.e, messages that the CarDigitalTwin's Actor understands - its own vocabulary.</p>
-</li>
-</ul>
-<p>Additionally, the Gateway also spawns and manages an asynchronous logic, that behaves as the FronHeadlampActuator. The interaction between the actuator and the Gateway happens solely between themselves (using a tokio channel). Thus, the Gateway never has to write anything to the CAN Bus.</p>
-<p>But, this is not the correct arrangement. The FrontHeadlampActuator must receive instructions and must acknowledge the status of  execution, through the <u>same CAN Bus</u>. For that to happen, the Gateway must also write messages back into the CAN Bus.</p>
+<p>The preceding <a href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-1/">stage</a> brought us here — three processes on one CAN bus, a gateway that owns the digital twin, and a body ECU that closes the headlamp loop with ACK/NACK:</p>
+<img src="SDV-Blog-Inputs-4.jpg" title="" alt="Stage II arrangement — emulator, gateway, front-headlamp actuator on vcan0" width="500">
+<p><strong>Stage I made the control loop work on the wire.</strong> Stage II makes the twin <strong>decomposable, observable, and provable</strong> — without changing what we see when we run the demo. Both the stages produce the same stdout: same FSM transitions, headlamp cycles, buzzer at speed limits. We pay down structural debt so the next iteration can give <strong>each assembly its own actor</strong> without a rewrite.</p>
 <hr />
-<p>A short note about the structure of the messages:</p>
-<p>The signals that flow through the CAN Bus - in the form of messages - follow standardized, domain-agnostic data model that organizes automotive signals into a unified, human-readable form named <strong>Vehicle Signal Specification (VSS)</strong>, developed by <strong>COVESA</strong> (Connected Vehicle Systems Alliance). However, in this project, currently, the Emulator puts every Telemetry data into a locally defined #rustlang <em>enum</em>, instead of using the official VSS Standard Catalog (incorporation that is a TODO for later versions of this project):</p>
-<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="rust"><span class="giallo-l"><span style="color: #FF79C6;">pub enum</span><span style="color: #8BE9FD;font-style: italic;"> VssSignal</span><span> {</span></span>
-<span class="giallo-l"><span style="color: #6272A4;">    /// Vehicle.Speed (Unit: km/h, </span></span>
-<span class="giallo-l"><span style="color: #6272A4;">    /// Scaling: 0.01)</span></span>
-<span class="giallo-l"><span style="color: #50FA7B;">    VehicleSpeed</span><span>(</span><span style="color: #8BE9FD;font-style: italic;">f64</span><span>),</span></span>
-<span class="giallo-l"><span style="color: #6272A4;">    /// Vehicle.Powertrain.CombustionEngine.Speed </span></span>
-<span class="giallo-l"><span style="color: #6272A4;">    /// (Unit: rpm, Scaling: 1.0)</span></span>
-<span class="giallo-l"><span style="color: #50FA7B;">    EngineRpm</span><span>(</span><span style="color: #8BE9FD;font-style: italic;">u16</span><span>),</span></span>
-<span class="giallo-l"><span style="color: #6272A4;">    /// Vehicle.Cabin or exterior ambient light </span></span>
-<span class="giallo-l"><span style="color: #6272A4;">    /// sensor (Unit: lux, Scaling: 1.0)</span></span>
-<span class="giallo-l"><span style="color: #50FA7B;">    AmbientLux</span><span>(</span><span style="color: #8BE9FD;font-style: italic;">u16</span><span>),</span></span>
+<h3 id="what-actually-changed-and-what-did-not">What actually changed (and what did not)</h3>
+<p><strong>Unchanged:</strong> three processes on <code>vcan0</code>, the same wire IDs and FSM states, the rule that the twin emits <strong>intent</strong> not raw I/O.</p>
+<p><strong>Changed underneath:</strong> flat <code>VehicleContext</code> → <strong>per-assembly contexts</strong>; monolithic <code>step.rs</code> → thin <strong>orchestrator</strong>; transition records → <strong>portable audit ledger</strong>; invariants → <strong>enforce / announce / detect</strong>; twin → private fields and a single FSM mutator; live-run fixes for silent ACK success and logging off the protocol path.</p>
+<p>Details, wire tables, and file paths live in the <a rel="external" href="https://github.com/nsengupta/sdv_simulation_2/blob/main/README.md"><strong>Iteration 2 README</strong></a>.</p>
+<hr />
+<h3 id="design-decision-1-decompose-state-to-mirror-the-car-s-zones">Design decision 1 — Decompose state to mirror the car's zones</h3>
+<p>Iteration 1 had one flat context and a ~238-line <code>step.rs</code>. Iteration 2 introduces <strong>assemblies</strong> — each owns its data and the rules over it:</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="rust"><span class="giallo-l"><span style="color: #FF79C6;">pub struct</span><span style="color: #8BE9FD;font-style: italic;"> VehicleContext</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">    pub</span><span> powertrain</span><span style="color: #FF79C6;">:</span><span style="color: #8BE9FD;font-style: italic;"> PowertrainContext</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">    pub</span><span> health</span><span style="color: #FF79C6;">:</span><span style="color: #8BE9FD;font-style: italic;">     VehicleHealthContext</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">    pub</span><span> visibility</span><span style="color: #FF79C6;">:</span><span style="color: #8BE9FD;font-style: italic;"> VisibilityContext</span><span>,</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">    pub</span><span> headlamp</span><span style="color: #FF79C6;">:</span><span style="color: #8BE9FD;font-style: italic;">   HeadlampContext</span><span>,</span></span>
 <span class="giallo-l"><span>}</span></span></code></pre>
+<p><code>step</code> decides <em>when</em> to call each assembly; the assembly decides <em>how</em>. A real SDV is not one blob — powertrain, lighting, and health sit in different zones. This is groundwork for <strong>each assembly having its own actor</strong>, not a monolithic twin holding everything.</p>
 <hr />
-<h3 id="what-should-change-sensors">What should change: Sensors</h3>
-<p>The Speed sensor is extraneous. It should go. The RPM Sensor is useful. Is should stay.</p>
-<p>In this version, I am using only one RPM Sensor. In a real 4-W car, there will be 4. The speed will be <strong>calculated</strong> based on the RPM of these wheels and a host of other parameters belonging to a moving car's physics, using specialized mathematical functions. In this project, we are not doing any such complicated calculation. We are going to take one RPM value, multiply that with an approximation factor and arrive at the speed.</p>
-<h3 id="what-should-change-frontheadlampactuator">What should change: FrontHeadlampActuator</h3>
-<p>The FrontHeadlampActuator should not remain an appendage of the Gateway (refer to the picture above). The DigitalTwin should interact with it, through the CAN Bus, using VSS Signals.</p>
-<p>What should change: DigitalTwin must emit its latest status; its view of the what's happening in the physical car, right not. For that to happen, the DigitalTwin should run an information-stream, which we should be able to see. For the time being, we will use <em>stdout</em> for  the purpose. The <em>stdout</em> will be the dashboard, if you like!</p>
-<h3 id="after-the-changes">After the changes..</h3>
-<p>The arrangement is like the following:</p>
-<img src="SDV-Blog-Inputs-4.jpg" alt="Stage 2 arrangement — emulator, gateway, front-headlamp actuator on vcan0" title="Stage 2 arrangement" width="720">
-<h3 id="explanation">Explanation</h3>
-<p>The updated prototype is built from <strong>three executables</strong>, each run in its own shell:</p>
+<h3 id="design-decision-2-two-observation-streams-two-jobs">Design decision 2 — Two observation streams, two jobs</h3>
+<table><thead><tr><th></th><th>Transition ledger</th><th>Diagnostic log</th></tr></thead><tbody>
+<tr><td>Delivery</td><td>bounded, lossless-or-error</td><td>unbounded, best-effort</td></tr>
+<tr><td>Ordering</td><td>total, one sequence per event</td><td>none guaranteed</td></tr>
+<tr><td>Cadence</td><td>one record per FSM event</td><td>many sources (init, ticks, failures, meta)</td></tr>
+<tr><td>Audience</td><td>replay, audit, offline checks</td><td>console / logs</td></tr>
+</tbody></table>
+<p>The twin writes through small <strong>sink</strong> interfaces. We keep the streams separate because diagnostics cannot be reconstructed from the ledger alone — and when <strong>each assembly has its own actor</strong>, that split matters even more.</p>
+<hr />
+<h3 id="design-decision-3-step-coordinates-the-actor-owns-the-turn">Design decision 3 — <code>step</code> coordinates; the actor owns the turn</h3>
+<p>One mailbox message → one pure decision → persist → record → execute side effects → only then the next event. Actions are <strong>intended</strong> outputs from <code>step</code>, not a second mutation path:</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="rust"><span class="giallo-l"><span style="color: #FF79C6;">let</span><span> result</span><span style="color: #FF79C6;"> =</span><span> fsm</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">step</span><span>(state, ctx,</span><span style="color: #FF79C6;"> &amp;</span><span>evt, now);</span></span>
+<span class="giallo-l"><span>runtime_state</span><span style="color: #FF79C6;">.</span><span>twin_car</span><span style="color: #FF79C6;">.</span><span style="color: #50FA7B;">apply_step</span><span>(result</span><span style="color: #FF79C6;">.</span><span>next_state, result</span><span style="color: #FF79C6;">.</span><span>modified_ctx);</span></span>
+<span class="giallo-l"><span style="color: #BD93F9;font-style: italic;">Self</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">try_emit_transition_record</span><span>(</span><span style="color: #FF79C6;">...</span><span>, result</span><span style="color: #FF79C6;">.</span><span>transition_record);</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">for</span><span> action</span><span style="color: #FF79C6;"> in</span><span> result</span><span style="color: #FF79C6;">.</span><span>actions {</span><span style="color: #6272A4;"> /* execute — immutable twin ref */</span><span> }</span></span></code></pre>
+<p>The ledger captures what we <em>decided</em> before actuation runs — not whether it succeeded.</p>
+<p><strong>Doesn't <code>RequestFrontHeadlampOn</code> change state immediately?</strong> The lighting state changes inside <code>step()</code> — e.g. <code>Off</code> → <code>OnRequested</code> — and the action is the outbound command. The lamp is not <code>On</code> until an ACK arrives in a <strong>later</strong> <code>step()</code>. Executing the action sends CAN traffic; it does not mutate the twin. Side effects cannot re-enter <code>step()</code> in the same turn; ACK/NACK comes back as a new ingress event.</p>
+<hr />
+<h3 id="design-decision-4-time-correctness-and-control-policy">Design decision 4 — Time, correctness, and control policy</h3>
+<p><strong>Two clocks.</strong> Monotonic time inside the FSM; wall-clock timestamps in the serializable mirror for offline replay.</p>
+<p><strong>Two sequence numbers</strong> — ledger position (every FSM event) vs command position (each correlated headlamp command on CAN). Snapshots return the twin plus a <strong>sequence stamp</strong>; there is no mutating "refresh" API.</p>
+<p><strong>Enforce / announce / detect.</strong> Clamp in the FSM; warnings on the diagnostic log, not the actuation path; named state laws checked offline over a captured ledger — never on the live hot path. The twin type has private fields and a single <code>apply_step(...)</code> mutator.</p>
+<p><strong>Anti-flap</strong> — both guards live in the twin; the emulator only sends raw telemetry:</p>
+<table><thead><tr><th>Boundary</th><th>Mechanism</th><th>Enter / exit (simplified)</th></tr></thead><tbody>
+<tr><td><strong>Lux → headlamp</strong></td><td>value <strong>deadband</strong></td><td>ON at <code>lux ≤ 840</code>; OFF at <code>lux ≥ 860</code>; hold in <code>(840, 860)</code></td></tr>
+<tr><td><strong>Speed → <code>ExtremeOperationWarning</code></strong></td><td>temporal <strong>latch</strong></td><td>enter at <code>speed &gt; 160</code>; leave only after <strong>≥ 5 s dwell AND</strong> hazard cleared</td></tr>
+</tbody></table>
+<p>Lux wobbles in our emulator, so a deadband stops relay-style flipping. Speed warnings <strong>latch</strong> until the hazard clears and five seconds have passed — a minimum dwell, not an auto-clear timer. Wire ID <code>0x101</code> (observed speed) is decoded but not fed to the twin today; speed comes from RPM until a future ECU path lands.</p>
+<hr />
+<h3 id="lessons-from-a-live-run">Lessons from a live run</h3>
+<p>Pressing <code>Ctrl-S</code> / <code>Ctrl-Q</code> froze stdout (XOFF/XON) and surfaced two gaps:</p>
 <ol>
-<li><strong>Gateway</strong> — hosts the CarDigitalTwin application (see below) and is the sole bridge between that application and the CAN Bus.</li>
-<li><strong>Emulator</strong> — stands in for the physical car’s sensors; it publishes telemetry onto the CAN Bus.</li>
-<li><strong>FrontHeadlamp Assembly</strong> — a separate process that models a zonal ECU for the front headlamp subsystem.</li>
+<li><strong>Silent success.</strong> A clean headlamp ACK had no human-visible line; the ledger already recorded the context change. The actor now compares headlamp state before and after <code>step()</code> and emits a confirmation when <code>*Requested → On/Off</code> settles.</li>
 </ol>
-<p><strong>CAN Bus.</strong> The bus is Linux’s own Virtual CAN (SocketCAN), exposed as a virtual network interface. The default name is <strong><code>vcan0</code></strong>. All cross-process traffic in this prototype goes through that interface.</p>
-<p><strong>CarDigitalTwin (one application).</strong> Inside the Gateway executable, <strong>Gateway</strong>, <strong>Controller</strong>, <strong>Actor</strong>, and <strong>FSM</strong> work together as a single application. A deliberate design rule keeps the Digital Twin ignorant of raw CAN bytes: it speaks only its own <strong>vocabulary</strong>—<code>DigitalTwinCarVocabulary</code> wrapping <code>FsmEvent</code> messages (plus request/reply such as <code>GetStatus</code>). Everything that arrives from the wire is normalized elsewhere. <strong>Gateway</strong> decodes CAN frames into <code>VehicleEvent</code> / <code>PhysicalCarVocabulary</code> (telemetry, timer ticks, headlamp ACK/NACK, and so on). <strong>Controller</strong> projects that physical vocabulary into the twin’s vocabulary before anything reaches the Actor. On egress, domain actions from the FSM are turned back into CAN actuation frames by the Gateway. The Actor never parses a CAN ID; it only reacts to vocabulary it already understands.</p>
-<p>The ingress chain is explicit in code:</p>
-<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="rust"><span class="giallo-l"><span style="color: #6272A4;">// Gateway: CAN frame → VssSignal → VehicleEvent → PhysicalCarVocabulary</span></span>
-<span class="giallo-l"><span style="color: #FF79C6;">let</span><span> ev</span><span style="color: #FF79C6;"> =</span><span style="color: #8BE9FD;font-style: italic;"> VehicleEvent</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">TelemetryUpdate</span><span>(sig);</span></span>
-<span class="giallo-l"><span style="color: #FF79C6;">let</span><span> physical</span><span style="color: #FF79C6;"> =</span><span> ingress</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">vehicle_event_to_physical_vocabulary</span><span>(ev);</span></span>
-<span class="giallo-l"><span style="color: #6272A4;">// … forwarded to the controller …</span></span>
-<span class="giallo-l"><span>controller</span><span style="color: #FF79C6;">.</span><span style="color: #50FA7B;">submit_physical_car_event</span><span>(physical)</span><span style="color: #FF79C6;">.await?</span><span>;</span></span></code></pre><pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="rust"><span class="giallo-l"><span style="color: #6272A4;">// Controller: PhysicalCarVocabulary → DigitalTwinCarVocabulary (twin vocabulary)</span></span>
-<span class="giallo-l"><span style="color: #FF79C6;">pub async fn</span><span style="color: #50FA7B;"> submit_physical_car_event</span><span>(</span></span>
-<span class="giallo-l"><span style="color: #FF79C6;">    &amp;</span><span style="color: #BD93F9;font-style: italic;">self</span><span>,</span></span>
-<span class="giallo-l"><span>    event</span><span style="color: #FF79C6;">:</span><span style="color: #8BE9FD;font-style: italic;"> PhysicalCarVocabulary</span><span>,</span></span>
-<span class="giallo-l"><span>)</span><span style="color: #FF79C6;"> -&gt;</span><span style="color: #8BE9FD;font-style: italic;"> Result</span><span>&lt;(),</span><span style="color: #8BE9FD;font-style: italic;"> VehicleControllerError</span><span>&gt; {</span></span>
-<span class="giallo-l"><span style="color: #FF79C6;">    let</span><span> msg</span><span style="color: #FF79C6;"> =</span><span style="color: #BD93F9;font-style: italic;"> self</span><span style="color: #FF79C6;">.</span><span>projector</span><span style="color: #FF79C6;">.</span><span style="color: #50FA7B;">project</span><span>(event)</span><span style="color: #FF79C6;">?</span><span>;</span></span>
-<span class="giallo-l"><span style="color: #BD93F9;font-style: italic;">    self</span><span style="color: #FF79C6;">.</span><span>actor</span><span style="color: #FF79C6;">.</span><span style="color: #50FA7B;">send_message</span><span>(msg)</span><span style="color: #FF79C6;">.await?</span><span>;</span></span>
-<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">    Ok</span><span>(())</span></span>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="rust"><span class="giallo-l"><span style="color: #FF79C6;">let</span><span> headlamp_before</span><span style="color: #FF79C6;"> =</span><span> runtime_state</span><span style="color: #FF79C6;">.</span><span>twin_car</span><span style="color: #FF79C6;">.</span><span style="color: #50FA7B;">context</span><span>()</span><span style="color: #FF79C6;">.</span><span>headlamp</span><span style="color: #FF79C6;">.</span><span>state;</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">let</span><span> result</span><span style="color: #FF79C6;"> =</span><span> fsm</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">step</span><span>(</span><span style="color: #FF79C6;">...</span><span>);</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">let</span><span> headlamp_after</span><span style="color: #FF79C6;"> =</span><span> result</span><span style="color: #FF79C6;">.</span><span>modified_ctx</span><span style="color: #FF79C6;">.</span><span>headlamp</span><span style="color: #FF79C6;">.</span><span>state;</span></span>
+<span class="giallo-l"><span style="color: #6272A4;">// ... persist, record, execute ...</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">if let</span><span style="color: #8BE9FD;font-style: italic;"> Some</span><span>(direction)</span><span style="color: #FF79C6;"> =</span><span style="color: #50FA7B;"> front_headlamp_confirmed_direction</span><span>(headlamp_before, headlamp_after) {</span></span>
+<span class="giallo-l"><span>    sink</span><span style="color: #FF79C6;">.</span><span style="color: #50FA7B;">try_emit</span><span>(</span><span style="color: #50FA7B;">diag_front_headlamp_confirmed</span><span>(identity, direction));</span></span>
 <span class="giallo-l"><span>}</span></span></code></pre>
-<p>The projector is where physical-side wording becomes FSM events the twin actually consumes:</p>
-<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="rust"><span class="giallo-l"><span style="color: #6272A4;">// PhysicalCarVocabulary → FsmEvent → DigitalTwinCarVocabulary::Fsm(...)</span></span>
-<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">PhysicalCarVocabulary</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">TelemetryUpdate</span><span>(VssSignal</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">EngineRpm</span><span>(rpm))</span><span style="color: #FF79C6;"> =&gt;</span><span> {</span></span>
-<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">    FsmEvent</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">UpdateRpm</span><span>(rpm)</span></span>
-<span class="giallo-l"><span>}</span></span>
-<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">PhysicalCarVocabulary</span><span style="color: #FF79C6;">::</span><span style="color: #8BE9FD;font-style: italic;">FrontHeadlampCommandConfirmed</span><span> { on_command</span><span style="color: #FF79C6;">:</span><span style="color: #BD93F9;"> true</span><span> }</span><span style="color: #FF79C6;"> =&gt;</span><span> {</span></span>
-<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">    FsmEvent</span><span style="color: #FF79C6;">::</span><span style="color: #8BE9FD;font-style: italic;">FrontHeadlampOnAck</span></span>
-<span class="giallo-l"><span>}</span></span>
-<span class="giallo-l"><span style="color: #6272A4;">// …</span></span>
-<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">Ok</span><span>(</span><span style="color: #8BE9FD;font-style: italic;">DigitalTwinCarVocabulary</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">Fsm</span><span>(fsm))</span></span></code></pre>
-<p>The twin’s mailbox vocabulary stays separate from the bus:</p>
-<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="rust"><span class="giallo-l"><span style="color: #FF79C6;">pub enum</span><span style="color: #8BE9FD;font-style: italic;"> DigitalTwinCarVocabulary</span><span> {</span></span>
-<span class="giallo-l"><span style="color: #6272A4;">    /// Drive the FSM (`fsm::step` derives context from event payloads).</span></span>
-<span class="giallo-l"><span style="color: #50FA7B;">    Fsm</span><span>(</span><span style="color: #8BE9FD;font-style: italic;">FsmEvent</span><span>),</span></span>
-<span class="giallo-l"><span style="color: #50FA7B;">    GetStatus</span><span>(</span><span style="color: #8BE9FD;font-style: italic;">RpcReplyPort</span><span>&lt;</span><span style="color: #8BE9FD;font-style: italic;">DigitalTwinCar</span><span>&gt;),</span></span>
-<span class="giallo-l"><span>}</span></span></code></pre>
-<p><strong>Actor and FSM together.</strong> The Actor’s main loop is intentionally thin: for each <code>DigitalTwinCarVocabulary::Fsm(evt)</code> message it calls <code>fsm::step</code> with the current state and context, persists the returned next state and context, then executes any domain actions (for example, requesting a headlamp switch). Behaviour is therefore fully determined by (a) which <strong>events</strong> arrive in the twin vocabulary and (b) which <strong>transitions</strong> the FSM defines for those events.</p>
-<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="rust"><span class="giallo-l"><span style="color: #FF79C6;">match</span><span> message {</span></span>
-<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">    DigitalTwinCarVocabulary</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">Fsm</span><span>(evt)</span><span style="color: #FF79C6;"> =&gt;</span><span> {</span></span>
-<span class="giallo-l"><span style="color: #FF79C6;">        let</span><span> result</span><span style="color: #FF79C6;"> =</span><span> fsm</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">step</span><span>(</span></span>
-<span class="giallo-l"><span style="color: #FF79C6;">            &amp;</span><span>runtime_state</span><span style="color: #FF79C6;">.</span><span>twin_car</span><span style="color: #FF79C6;">.</span><span>current_state,</span></span>
-<span class="giallo-l"><span style="color: #FF79C6;">            &amp;</span><span>runtime_state</span><span style="color: #FF79C6;">.</span><span>twin_car</span><span style="color: #FF79C6;">.</span><span>context,</span></span>
-<span class="giallo-l"><span style="color: #FF79C6;">            &amp;</span><span>evt,</span></span>
-<span class="giallo-l"><span>            std</span><span style="color: #FF79C6;">::</span><span>time</span><span style="color: #FF79C6;">::</span><span>Instant</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">now</span><span>(),</span></span>
-<span class="giallo-l"><span>        );</span></span>
-<span class="giallo-l"><span>        runtime_state</span><span style="color: #FF79C6;">.</span><span>twin_car</span><span style="color: #FF79C6;">.</span><span>current_state </span><span style="color: #FF79C6;">=</span><span> result</span><span style="color: #FF79C6;">.</span><span>next_state</span><span style="color: #FF79C6;">.</span><span style="color: #50FA7B;">clone</span><span>();</span></span>
-<span class="giallo-l"><span>        runtime_state</span><span style="color: #FF79C6;">.</span><span>twin_car</span><span style="color: #FF79C6;">.</span><span>context </span><span style="color: #FF79C6;">=</span><span> result</span><span style="color: #FF79C6;">.</span><span>modified_ctx;</span></span>
-<span class="giallo-l"><span style="color: #FF79C6;">        for</span><span> action</span><span style="color: #FF79C6;"> in</span><span> result</span><span style="color: #FF79C6;">.</span><span>actions {</span></span>
-<span class="giallo-l"><span>            runtime_state</span><span style="color: #FF79C6;">.</span><span>actuation_manager</span><span style="color: #FF79C6;">.</span><span style="color: #50FA7B;">execute</span><span>(</span><span style="color: #FF79C6;">&amp;</span><span>action,</span><span style="color: #FF79C6;"> &amp;</span><span>runtime_state</span><span style="color: #FF79C6;">.</span><span>twin_car)</span><span style="color: #FF79C6;">.await?</span><span>;</span></span>
-<span class="giallo-l"><span>        }</span></span>
-<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">        Ok</span><span>(())</span></span>
-<span class="giallo-l"><span>    }</span></span>
-<span class="giallo-l"><span style="color: #6272A4;">    // …</span></span>
-<span class="giallo-l"><span>}</span></span></code></pre>
-<p>A small slice of the transition table shows the same contract from the FSM side—here, ignition and motion:</p>
-<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="rust"><span class="giallo-l"><span style="color: #FF79C6;">match</span><span> current_state {</span></span>
-<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">    FsmState</span><span style="color: #FF79C6;">::</span><span style="color: #8BE9FD;font-style: italic;">Off</span><span style="color: #FF79C6;"> =&gt; match</span><span> event {</span></span>
-<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">        FsmEvent</span><span style="color: #FF79C6;">::</span><span style="color: #8BE9FD;font-style: italic;">PowerOn</span><span style="color: #FF79C6;"> if</span><span> current_ctx</span><span style="color: #FF79C6;">.</span><span style="color: #50FA7B;">is_healthy</span><span>()</span><span style="color: #FF79C6;"> =&gt;</span><span> {</span></span>
-<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">            TransitionResult</span><span> { next_state</span><span style="color: #FF79C6;">:</span><span style="color: #8BE9FD;font-style: italic;"> FsmState</span><span style="color: #FF79C6;">::</span><span style="color: #8BE9FD;font-style: italic;">Idle</span><span>, note</span><span style="color: #FF79C6;">:</span><span style="color: #8BE9FD;font-style: italic;"> None</span><span> }</span></span>
-<span class="giallo-l"><span>        }</span></span>
-<span class="giallo-l"><span style="color: #6272A4;">        // …</span></span>
-<span class="giallo-l"><span>    }</span></span>
-<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">    FsmState</span><span style="color: #FF79C6;">::</span><span style="color: #8BE9FD;font-style: italic;">Idle</span><span style="color: #FF79C6;"> =&gt; match</span><span> event {</span></span>
-<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">        FsmEvent</span><span style="color: #FF79C6;">::</span><span style="color: #50FA7B;">UpdateRpm</span><span>(rpm)</span><span style="color: #FF79C6;"> if *</span><span>rpm</span><span style="color: #FF79C6;"> &gt;</span><span style="color: #BD93F9;"> 1000</span><span style="color: #FF79C6;"> =&gt;</span><span> {</span></span>
-<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">            TransitionResult</span><span> { next_state</span><span style="color: #FF79C6;">:</span><span style="color: #8BE9FD;font-style: italic;"> FsmState</span><span style="color: #FF79C6;">::</span><span style="color: #8BE9FD;font-style: italic;">Driving</span><span>, note</span><span style="color: #FF79C6;">:</span><span style="color: #8BE9FD;font-style: italic;"> None</span><span> }</span></span>
-<span class="giallo-l"><span>        }</span></span>
-<span class="giallo-l"><span style="color: #6272A4;">        // …</span></span>
-<span class="giallo-l"><span>    }</span></span>
-<span class="giallo-l"><span style="color: #6272A4;">    // …</span></span>
-<span class="giallo-l"><span>}</span></span></code></pre>
-<p>Separately, <code>step</code> applies lighting policy when context events such as <code>UpdateAmbientLux</code> arrive—still driven only by <code>FsmEvent</code>, not by CAN layout. That is why swapping the CAN codec tomorrow should touch Gateway and the projector, not the Actor or the transition table.</p>
-<p><strong>Emulator.</strong> The Emulator embeds the logic needed to synthesize sensor readings at the appropriate rates (for example, RPM and ambient lux). Each reading is encoded in a <strong>user-defined CAN data format</strong> aligned with the project’s local <code>VssSignal</code> enum (shown above), rather than the full COVESA catalog—for now.</p>
-<p><strong>FrontHeadlamp Assembly.</strong> This executable is <strong>independent</strong> of the Gateway process. It represents a <strong>zonal ECU</strong>: it receives headlamp commands over the CAN Bus, drives the (simulated) actuator, and reports headlamp status back on the same bus so the CarDigitalTwin can confirm whether the lamps are actually on or off.</p>
-<p><strong>Dashboard on stdout.</strong> The CarDigitalTwin emits a continuous stream of status and diagnostic messages—its current view of the vehicle. For this stage, every such message is written to <strong><code>stdout</code></strong>, which acts as the default sink and serves as a simple dashboard while the prototype runs.</p>
-<h3 id="how-to-run">How to run</h3>
-<p>You need a Linux host with <strong>SocketCAN</strong> and a Rust toolchain. The prototype does not fold everything into one launcher: <strong>four separate bash shells</strong> are required—one to bring up the virtual bus, and one each for the three executables.</p>
-<p><strong>Shell 1 — CAN interface (<code>vcan0</code>).</strong> Create and raise the virtual CAN device once (sudo as needed):</p>
-<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="shellscript"><span class="giallo-l"><span style="color: #50FA7B;">sudo</span><span style="color: #F1FA8C;"> modprobe vcan</span></span>
-<span class="giallo-l"><span style="color: #50FA7B;">sudo</span><span style="color: #F1FA8C;"> ip link add dev vcan0 type vcan</span><span style="color: #FF79C6;"> 2&gt;</span><span style="color: #F1FA8C;">/dev/null</span><span style="color: #FF79C6;"> ||</span><span style="color: #8BE9FD;"> true</span></span>
-<span class="giallo-l"><span style="color: #50FA7B;">sudo</span><span style="color: #F1FA8C;"> ip link set up vcan0</span></span></code></pre>
-<p>Leave this shell free, or use it only for setup; the link stays up until you delete it.</p>
-<p><strong>Shell 2 — Emulator</strong> (sensor telemetry onto the bus):</p>
-<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="shellscript"><span class="giallo-l"><span style="color: #50FA7B;">cargo</span><span style="color: #F1FA8C;"> run</span><span style="color: #BD93F9;"> -p</span><span style="color: #F1FA8C;"> emulator</span></span></code></pre>
-<p><strong>Shell 3 — FrontHeadlamp Assembly</strong> (zonal ECU; ACK/NACK on the bus):</p>
-<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="shellscript"><span class="giallo-l"><span style="color: #50FA7B;">cargo</span><span style="color: #F1FA8C;"> run</span><span style="color: #BD93F9;"> -p</span><span style="color: #F1FA8C;"> front_headlamp_actuator</span></span></code></pre>
-<p><strong>Shell 4 — Gateway</strong> (digital twin + CAN ingress/egress; dashboard on stdout):</p>
-<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="shellscript"><span class="giallo-l"><span style="color: #50FA7B;">cargo</span><span style="color: #F1FA8C;"> run</span><span style="color: #BD93F9;"> -p</span><span style="color: #F1FA8C;"> gateway</span></span></code></pre>
-<p>Start <strong>Shell 1</strong> first, then <strong>2</strong> and <strong>3</strong>, then <strong>4</strong> so the bus and body ECU are ready before the gateway attaches. Useful gateway flags: <code>--print-timer-tick</code>, <code>--print-transitions</code>, <code>--trace-actuation-ingress</code> (see the <a rel="external" href="https://github.com/nsengupta/sdv_simulation_1/blob/main/README.md">project README</a>). Stop with <code>Ctrl+C</code> in each process shell; tear down the interface when finished: <code>sudo ip link del vcan0</code>.</p>
-<h3 id="demo-screenshots">Demo screenshots</h3>
-<p>Still frames from a live three-process run on <code>vcan0</code> (emulator, gateway, front-headlamp actuator). Both show the same gateway <strong>stdout</strong> surface—FSM transitions, RPM/lux telemetry, and (when lighting rules fire) headlamp actuation—under different ambient-light conditions. (Full-size copies also live in the <a rel="external" href="https://github.com/nsengupta/sdv_simulation_1/blob/main/README.md#demo-screenshots">project README</a>.)</p>
-<p><strong>Daylight band (headlamp off)</strong> — ambient lux stays above the OFF threshold (<code>LUX_OFF</code> 860). The twin keeps <code>LightingState::Off</code>; the gateway log has no headlamp CMD or ACK/NACK lines.</p>
-<img src="runtime-screenshot-no-headlamp.png" alt="Gateway run in daylight — headlamp off, no actuation traffic" title="Gateway run in daylight — headlamp off, no actuation traffic" width="720">
-<p><strong>Tunnel / dim band (headlamp on)</strong> — lux falls through the ON threshold (<code>LUX_ON</code> 840), the twin requests ON, the gateway sends a headlamp CMD on CAN, and the actuator reply appears as a positive ACK (or NACK / timeout on failure paths).</p>
-<img src="runtime-screenshot-with-headlamp.png" alt="Gateway run in low lux — headlamp ON requested and ACK'd" title="Gateway run in low lux — headlamp ON requested and ACK'd" width="720">
+<ol start="2">
+<li><strong>Logging on the hot path.</strong> Synchronous <code>println</code> in the gateway and actuator could stall CAN handling under console back-pressure. Both now use bounded side-channels and non-blocking <code>try_send</code> (drop-on-full); the gateway delivers the ACK to the twin <strong>before</strong> logging.</li>
+</ol>
+<hr />
+<h3 id="what-comes-next">What comes next</h3>
+<p><strong>Each assembly having its own actor</strong> moves to a fresh cloned project: parent FSM actor, child actors per assembly, a single-writer ledger, correlation IDs end-to-end, diagnostics derived from the ledger, and an actuation child for buzzer/egress I/O. See the <a rel="external" href="https://github.com/nsengupta/sdv_simulation_2#roadmap">roadmap</a>.</p>
+<hr />
 <h3 id="summary">Summary</h3>
-<p><strong>What this phase achieved</strong></p>
-<ul>
-<li>Moved from a <strong>two-process</strong> demo (gateway + emulator) with an <strong>in-gateway headlamp stub</strong> to a <strong>bus-centric</strong> layout on Linux <strong><code>vcan0</code></strong> (SocketCAN).</li>
-<li><strong>Three executables</strong> on the wire: <strong>emulator</strong>, <strong>gateway</strong>, <strong>front_headlamp_actuator</strong>—telemetry and actuation share one CAN bus.</li>
-<li><strong>Gateway reads and writes CAN</strong>; the front headlamp is a <strong>separate zonal ECU</strong>, not a Tokio channel inside the gateway.</li>
-<li><strong>Closed-loop headlamp control</strong>: ambient lux → twin requests ON/OFF → CMD on CAN → ACK/NACK (or timeout) back through the same path.</li>
-<li><strong>Digital twin</strong> unchanged in spirit—<strong>actor + FSM</strong>—with behaviour driven only by <strong><code>FsmEvent</code></strong> after Gateway/Controller <strong>projection</strong> from raw CAN.</li>
-<li><strong>Telemetry</strong> focused on <strong>RPM</strong> and <strong>ambient lux</strong>; <strong>speed derived</strong> in the twin (no separate speed sensor on the bus in this milestone).</li>
-<li><strong>Layered vocabularies</strong> (<code>PhysicalCarVocabulary</code> → <code>DigitalTwinCarVocabulary</code>) so the twin stays ignorant of frame layout.</li>
-<li><strong>stdout</strong> as a live dashboard (see demo screenshots above)—no separate HMI yet.</li>
-</ul>
+<p>Stage III is a refactor-and-contracts milestone: <strong>same demo, stronger internals</strong> — assemblies, a designed observation split, a strict turn contract, explicit anti-flap policy, and live-run hardening. The next stage splits the monolith along the assembly seams we drew here.</p>
+<hr />
 <p><strong>Where the code is</strong></p>
 <ul>
-<li>Repository: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_1"><strong><code>sdv_simulation_1</code></strong></a> on GitHub — clone and build with <code>cargo</code>.</li>
-<li>Operational reference: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_1/blob/main/README.md">project <strong>README</strong></a> (crate layout, wire IDs, tests, flags, demo assets).</li>
-<li>Main crates: <strong><code>emulator</code></strong>, <strong><code>gateway</code></strong>, <strong><code>front_headlamp_actuator</code></strong>, <strong><code>common</code></strong> (FSM, actor, projection), <strong><code>vehicle_device_bus</code></strong> (headlamp codec and ingress policy).</li>
+<li>Repository: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_2"><strong><code>sdv_simulation_2</code></strong></a> on GitHub — builds on <a rel="external" href="https://github.com/nsengupta/sdv_simulation_1"><strong><code>sdv_simulation_1</code></strong></a>.</li>
+<li>Operational reference: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_2/blob/main/README.md">project <strong>README</strong></a> (crate layout, wire IDs, tests, flags, demo assets).</li>
 <li>This post is the <strong>narrative</strong>; the README on <strong><code>main</code></strong> is the <strong>current truth</strong> for running and extending the prototype.</li>
 </ul>
 <hr />
 <p><strong>Series:</strong> Prototyping a Software Defined Vehicle</p>
-<p><strong>← Previous</strong> <a href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-1/">Stage I</a></p>
+<p><strong>← Previous</strong> <a href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-2/">Stage II</a></p>
 <p>All posts in this series: <a href="/tags/sdv-prototype/">sdv-prototype</a></p>
 
     </div>
