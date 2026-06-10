@@ -16,7 +16,7 @@
 
   <title>
     
-    Prototyping a Software Defined Vehicle - Stage II
+    Prototyping a Software Defined Vehicle - Stage III
     
 </title>
 
@@ -104,7 +104,7 @@ main h3 {
 
 <article itemscope itemtype="http://schema.org/BlogPosting">
     <header>
-        <h1 itemprop="headline">Prototyping a Software Defined Vehicle - Stage II</h1>
+        <h1 itemprop="headline">Prototyping a Software Defined Vehicle - Stage III</h1>
         <span class="muted">
     <svg class="icon i-clock" viewBox="0 0 32 32"
          width="16" height="16" fill="none" stroke="currentcolor"
@@ -119,20 +119,22 @@ main h3 {
         <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
     </svg>
 
-    Published: 2026-05-28
+    Published: 2026-06-08
 </span>
     </header>
     <div itemprop="articleBody">
       <h3 id="preface">Preface</h3>
-<p>The preceding <a href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-1/">stage</a> brought us here — three processes on one CAN bus, a gateway that owns the digital twin, and a body ECU that closes the headlamp loop with ACK/NACK:</p>
-<img src="SDV-Blog-Inputs-4.jpg" title="" alt="Stage II arrangement — emulator, gateway, front-headlamp actuator on vcan0" width="500">
+<p>The preceding <a href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-2/">stage</a> brought us here — three processes on one CAN bus, a gateway that owns the digital twin, and a body ECU that closes the headlamp loop with ACK/NACK:</p>
+<p><img src="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-3/SDV-Blog-Inputs-3.1.jpg" alt="" /></p>
 <p><strong>Stage I made the control loop work on the wire.</strong> Stage II makes the twin <strong>decomposable, observable, and provable</strong> — without changing what we see when we run the demo. Both the stages produce the same stdout: same FSM transitions, headlamp cycles, buzzer at speed limits. We pay down structural debt so the next iteration can give <strong>each assembly its own actor</strong> without a rewrite.</p>
 <hr />
 <h3 id="what-actually-changed-and-what-did-not">What actually changed (and what did not)</h3>
 <p><strong>Unchanged:</strong> three processes on <code>vcan0</code>, the same wire IDs and FSM states, the rule that the twin emits <strong>intent</strong> not raw I/O.</p>
 <p><strong>Changed underneath:</strong> flat <code>VehicleContext</code> → <strong>per-assembly contexts</strong>; monolithic <code>step.rs</code> → thin <strong>orchestrator</strong>; transition records → <strong>portable audit ledger</strong>; invariants → <strong>enforce / announce / detect</strong>; twin → private fields and a single FSM mutator; live-run fixes for silent ACK success and logging off the protocol path.</p>
-<p>Details, wire tables, and file paths live in the <a rel="external" href="https://github.com/nsengupta/sdv_simulation_2/blob/main/README.md"><strong>Iteration 2 README</strong></a>.</p>
+<p>Details, wire tables, and file paths live in the <a rel="external" href="https://github.com/nsengupta/sdv_simulation_3/blob/main/README.md"><strong>Iteration 3 README</strong></a>.</p>
 <hr />
+<h3 id="closer-look-at-the-digitaltwin">Closer look at the DigitalTwin</h3>
+<p><img src="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-3/SDV-Blog-Inputs-3.2.jpg" alt="" /></p>
 <h3 id="design-decision-1-decompose-state-to-mirror-the-car-s-zones">Design decision 1 — Decompose state to mirror the car's zones</h3>
 <p>Iteration 1 had one flat context and a ~238-line <code>step.rs</code>. Iteration 2 introduces <strong>assemblies</strong> — each owns its data and the rules over it:</p>
 <pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="rust"><span class="giallo-l"><span style="color: #FF79C6;">pub struct</span><span style="color: #8BE9FD;font-style: italic;"> VehicleContext</span><span> {</span></span>
@@ -196,13 +198,13 @@ main h3 {
 <hr />
 <p><strong>Where the code is</strong></p>
 <ul>
-<li>Repository: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_2"><strong><code>sdv_simulation_2</code></strong></a> on GitHub — builds on <a rel="external" href="https://github.com/nsengupta/sdv_simulation_1"><strong><code>sdv_simulation_1</code></strong></a>.</li>
+<li>Repository: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_3"><strong><code>sdv_simulation_3</code></strong></a> on GitHub — builds on <a rel="external" href="https://github.com/nsengupta/sdv_simulation_2"><strong><code>sdv_simulation_2</code></strong></a>.</li>
 <li>Operational reference: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_2/blob/main/README.md">project <strong>README</strong></a> (crate layout, wire IDs, tests, flags, demo assets).</li>
 <li>This post is the <strong>narrative</strong>; the README on <strong><code>main</code></strong> is the <strong>current truth</strong> for running and extending the prototype.</li>
 </ul>
 <hr />
 <p><strong>Series:</strong> Prototyping a Software Defined Vehicle</p>
-<p><strong>← Previous</strong> <a href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-1/">Stage I</a></p>
+<p><strong>← Previous</strong> <a href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-2/">Stage II</a></p>
 <p>All posts in this series: <a href="/tags/sdv-prototype/">sdv-prototype</a></p>
 
     </div>

@@ -5,8 +5,110 @@
     <link rel="self" type="application/atom+xml" href="https://nsengupta.github.io/tags/sdv-prototype/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://nsengupta.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2026-05-28T00:00:00+00:00</updated>
+    <updated>2026-06-08T00:00:00+00:00</updated>
     <id>https://nsengupta.github.io/tags/sdv-prototype/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Prototyping a Software Defined Vehicle - Stage III</title>
+        <published>2026-06-08T00:00:00+00:00</published>
+        <updated>2026-06-08T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-3/"/>
+        <id>https://nsengupta.github.io/blog/prototype-software-defined-vehicle-3/</id>
+        
+        <content type="html" xml:base="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-3/">&lt;h3 id=&quot;preface&quot;&gt;Preface&lt;&#x2F;h3&gt;
+&lt;p&gt;The preceding &lt;a href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-2&#x2F;&quot;&gt;stage&lt;&#x2F;a&gt; brought us here — three processes on one CAN bus, a gateway that owns the digital twin, and a body ECU that closes the headlamp loop with ACK&#x2F;NACK:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-3&#x2F;SDV-Blog-Inputs-3.1.jpg&quot; alt=&quot;&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Stage I made the control loop work on the wire.&lt;&#x2F;strong&gt; Stage II makes the twin &lt;strong&gt;decomposable, observable, and provable&lt;&#x2F;strong&gt; — without changing what we see when we run the demo. Both the stages produce the same stdout: same FSM transitions, headlamp cycles, buzzer at speed limits. We pay down structural debt so the next iteration can give &lt;strong&gt;each assembly its own actor&lt;&#x2F;strong&gt; without a rewrite.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;what-actually-changed-and-what-did-not&quot;&gt;What actually changed (and what did not)&lt;&#x2F;h3&gt;
+&lt;p&gt;&lt;strong&gt;Unchanged:&lt;&#x2F;strong&gt; three processes on &lt;code&gt;vcan0&lt;&#x2F;code&gt;, the same wire IDs and FSM states, the rule that the twin emits &lt;strong&gt;intent&lt;&#x2F;strong&gt; not raw I&#x2F;O.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Changed underneath:&lt;&#x2F;strong&gt; flat &lt;code&gt;VehicleContext&lt;&#x2F;code&gt; → &lt;strong&gt;per-assembly contexts&lt;&#x2F;strong&gt;; monolithic &lt;code&gt;step.rs&lt;&#x2F;code&gt; → thin &lt;strong&gt;orchestrator&lt;&#x2F;strong&gt;; transition records → &lt;strong&gt;portable audit ledger&lt;&#x2F;strong&gt;; invariants → &lt;strong&gt;enforce &#x2F; announce &#x2F; detect&lt;&#x2F;strong&gt;; twin → private fields and a single FSM mutator; live-run fixes for silent ACK success and logging off the protocol path.&lt;&#x2F;p&gt;
+&lt;p&gt;Details, wire tables, and file paths live in the &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_3&#x2F;blob&#x2F;main&#x2F;README.md&quot;&gt;&lt;strong&gt;Iteration 3 README&lt;&#x2F;strong&gt;&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;closer-look-at-the-digitaltwin&quot;&gt;Closer look at the DigitalTwin&lt;&#x2F;h3&gt;
+&lt;p&gt;&lt;img src=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-3&#x2F;SDV-Blog-Inputs-3.2.jpg&quot; alt=&quot;&quot; &#x2F;&gt;&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;design-decision-1-decompose-state-to-mirror-the-car-s-zones&quot;&gt;Design decision 1 — Decompose state to mirror the car&#x27;s zones&lt;&#x2F;h3&gt;
+&lt;p&gt;Iteration 1 had one flat context and a ~238-line &lt;code&gt;step.rs&lt;&#x2F;code&gt;. Iteration 2 introduces &lt;strong&gt;assemblies&lt;&#x2F;strong&gt; — each owns its data and the rules over it:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;rust&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;pub struct&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt; VehicleContext&lt;&#x2F;span&gt;&lt;span&gt; {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;    pub&lt;&#x2F;span&gt;&lt;span&gt; powertrain&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt; PowertrainContext&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;    pub&lt;&#x2F;span&gt;&lt;span&gt; health&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;     VehicleHealthContext&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;    pub&lt;&#x2F;span&gt;&lt;span&gt; visibility&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt; VisibilityContext&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;    pub&lt;&#x2F;span&gt;&lt;span&gt; headlamp&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt;   HeadlampContext&lt;&#x2F;span&gt;&lt;span&gt;,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;&lt;code&gt;step&lt;&#x2F;code&gt; decides &lt;em&gt;when&lt;&#x2F;em&gt; to call each assembly; the assembly decides &lt;em&gt;how&lt;&#x2F;em&gt;. A real SDV is not one blob — powertrain, lighting, and health sit in different zones. This is groundwork for &lt;strong&gt;each assembly having its own actor&lt;&#x2F;strong&gt;, not a monolithic twin holding everything.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;design-decision-2-two-observation-streams-two-jobs&quot;&gt;Design decision 2 — Two observation streams, two jobs&lt;&#x2F;h3&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;&lt;&#x2F;th&gt;&lt;th&gt;Transition ledger&lt;&#x2F;th&gt;&lt;th&gt;Diagnostic log&lt;&#x2F;th&gt;&lt;&#x2F;tr&gt;&lt;&#x2F;thead&gt;&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;Delivery&lt;&#x2F;td&gt;&lt;td&gt;bounded, lossless-or-error&lt;&#x2F;td&gt;&lt;td&gt;unbounded, best-effort&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Ordering&lt;&#x2F;td&gt;&lt;td&gt;total, one sequence per event&lt;&#x2F;td&gt;&lt;td&gt;none guaranteed&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Cadence&lt;&#x2F;td&gt;&lt;td&gt;one record per FSM event&lt;&#x2F;td&gt;&lt;td&gt;many sources (init, ticks, failures, meta)&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;Audience&lt;&#x2F;td&gt;&lt;td&gt;replay, audit, offline checks&lt;&#x2F;td&gt;&lt;td&gt;console &#x2F; logs&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;&#x2F;tbody&gt;&lt;&#x2F;table&gt;
+&lt;p&gt;The twin writes through small &lt;strong&gt;sink&lt;&#x2F;strong&gt; interfaces. We keep the streams separate because diagnostics cannot be reconstructed from the ledger alone — and when &lt;strong&gt;each assembly has its own actor&lt;&#x2F;strong&gt;, that split matters even more.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;design-decision-3-step-coordinates-the-actor-owns-the-turn&quot;&gt;Design decision 3 — &lt;code&gt;step&lt;&#x2F;code&gt; coordinates; the actor owns the turn&lt;&#x2F;h3&gt;
+&lt;p&gt;One mailbox message → one pure decision → persist → record → execute side effects → only then the next event. Actions are &lt;strong&gt;intended&lt;&#x2F;strong&gt; outputs from &lt;code&gt;step&lt;&#x2F;code&gt;, not a second mutation path:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;rust&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; result&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&lt;&#x2F;span&gt;&lt;span&gt; fsm&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;step&lt;&#x2F;span&gt;&lt;span&gt;(state, ctx,&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; &amp;amp;&lt;&#x2F;span&gt;&lt;span&gt;evt, now);&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;runtime_state&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;twin_car&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;apply_step&lt;&#x2F;span&gt;&lt;span&gt;(result&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;next_state, result&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;modified_ctx);&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #BD93F9;font-style: italic;&quot;&gt;Self&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;try_emit_transition_record&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;...&lt;&#x2F;span&gt;&lt;span&gt;, result&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;transition_record);&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;for&lt;&#x2F;span&gt;&lt;span&gt; action&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; in&lt;&#x2F;span&gt;&lt;span&gt; result&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;actions {&lt;&#x2F;span&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt; &#x2F;* execute — immutable twin ref *&#x2F;&lt;&#x2F;span&gt;&lt;span&gt; }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The ledger captures what we &lt;em&gt;decided&lt;&#x2F;em&gt; before actuation runs — not whether it succeeded.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Doesn&#x27;t &lt;code&gt;RequestFrontHeadlampOn&lt;&#x2F;code&gt; change state immediately?&lt;&#x2F;strong&gt; The lighting state changes inside &lt;code&gt;step()&lt;&#x2F;code&gt; — e.g. &lt;code&gt;Off&lt;&#x2F;code&gt; → &lt;code&gt;OnRequested&lt;&#x2F;code&gt; — and the action is the outbound command. The lamp is not &lt;code&gt;On&lt;&#x2F;code&gt; until an ACK arrives in a &lt;strong&gt;later&lt;&#x2F;strong&gt; &lt;code&gt;step()&lt;&#x2F;code&gt;. Executing the action sends CAN traffic; it does not mutate the twin. Side effects cannot re-enter &lt;code&gt;step()&lt;&#x2F;code&gt; in the same turn; ACK&#x2F;NACK comes back as a new ingress event.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;design-decision-4-time-correctness-and-control-policy&quot;&gt;Design decision 4 — Time, correctness, and control policy&lt;&#x2F;h3&gt;
+&lt;p&gt;&lt;strong&gt;Two clocks.&lt;&#x2F;strong&gt; Monotonic time inside the FSM; wall-clock timestamps in the serializable mirror for offline replay.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Two sequence numbers&lt;&#x2F;strong&gt; — ledger position (every FSM event) vs command position (each correlated headlamp command on CAN). Snapshots return the twin plus a &lt;strong&gt;sequence stamp&lt;&#x2F;strong&gt;; there is no mutating &quot;refresh&quot; API.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Enforce &#x2F; announce &#x2F; detect.&lt;&#x2F;strong&gt; Clamp in the FSM; warnings on the diagnostic log, not the actuation path; named state laws checked offline over a captured ledger — never on the live hot path. The twin type has private fields and a single &lt;code&gt;apply_step(...)&lt;&#x2F;code&gt; mutator.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;Anti-flap&lt;&#x2F;strong&gt; — both guards live in the twin; the emulator only sends raw telemetry:&lt;&#x2F;p&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Boundary&lt;&#x2F;th&gt;&lt;th&gt;Mechanism&lt;&#x2F;th&gt;&lt;th&gt;Enter &#x2F; exit (simplified)&lt;&#x2F;th&gt;&lt;&#x2F;tr&gt;&lt;&#x2F;thead&gt;&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;&lt;strong&gt;Lux → headlamp&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;value &lt;strong&gt;deadband&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;ON at &lt;code&gt;lux ≤ 840&lt;&#x2F;code&gt;; OFF at &lt;code&gt;lux ≥ 860&lt;&#x2F;code&gt;; hold in &lt;code&gt;(840, 860)&lt;&#x2F;code&gt;&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;&lt;strong&gt;Speed → &lt;code&gt;ExtremeOperationWarning&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;temporal &lt;strong&gt;latch&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;enter at &lt;code&gt;speed &amp;gt; 160&lt;&#x2F;code&gt;; leave only after &lt;strong&gt;≥ 5 s dwell AND&lt;&#x2F;strong&gt; hazard cleared&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;&#x2F;tbody&gt;&lt;&#x2F;table&gt;
+&lt;p&gt;Lux wobbles in our emulator, so a deadband stops relay-style flipping. Speed warnings &lt;strong&gt;latch&lt;&#x2F;strong&gt; until the hazard clears and five seconds have passed — a minimum dwell, not an auto-clear timer. Wire ID &lt;code&gt;0x101&lt;&#x2F;code&gt; (observed speed) is decoded but not fed to the twin today; speed comes from RPM until a future ECU path lands.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;lessons-from-a-live-run&quot;&gt;Lessons from a live run&lt;&#x2F;h3&gt;
+&lt;p&gt;Pressing &lt;code&gt;Ctrl-S&lt;&#x2F;code&gt; &#x2F; &lt;code&gt;Ctrl-Q&lt;&#x2F;code&gt; froze stdout (XOFF&#x2F;XON) and surfaced two gaps:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Silent success.&lt;&#x2F;strong&gt; A clean headlamp ACK had no human-visible line; the ledger already recorded the context change. The actor now compares headlamp state before and after &lt;code&gt;step()&lt;&#x2F;code&gt; and emits a confirmation when &lt;code&gt;*Requested → On&#x2F;Off&lt;&#x2F;code&gt; settles.&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;rust&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; headlamp_before&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&lt;&#x2F;span&gt;&lt;span&gt; runtime_state&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;twin_car&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;context&lt;&#x2F;span&gt;&lt;span&gt;()&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;headlamp&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;state;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; result&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&lt;&#x2F;span&gt;&lt;span&gt; fsm&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;step&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;...&lt;&#x2F;span&gt;&lt;span&gt;);&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span&gt; headlamp_after&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&lt;&#x2F;span&gt;&lt;span&gt; result&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;modified_ctx&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;headlamp&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span&gt;state;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;&#x2F;&#x2F; ... persist, record, execute ...&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;if let&lt;&#x2F;span&gt;&lt;span style=&quot;color: #8BE9FD;font-style: italic;&quot;&gt; Some&lt;&#x2F;span&gt;&lt;span&gt;(direction)&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt; =&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt; front_headlamp_confirmed_direction&lt;&#x2F;span&gt;&lt;span&gt;(headlamp_before, headlamp_after) {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    sink&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;try_emit&lt;&#x2F;span&gt;&lt;span&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;diag_front_headlamp_confirmed&lt;&#x2F;span&gt;&lt;span&gt;(identity, direction));&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;ol start=&quot;2&quot;&gt;
+&lt;li&gt;&lt;strong&gt;Logging on the hot path.&lt;&#x2F;strong&gt; Synchronous &lt;code&gt;println&lt;&#x2F;code&gt; in the gateway and actuator could stall CAN handling under console back-pressure. Both now use bounded side-channels and non-blocking &lt;code&gt;try_send&lt;&#x2F;code&gt; (drop-on-full); the gateway delivers the ACK to the twin &lt;strong&gt;before&lt;&#x2F;strong&gt; logging.&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;what-comes-next&quot;&gt;What comes next&lt;&#x2F;h3&gt;
+&lt;p&gt;&lt;strong&gt;Each assembly having its own actor&lt;&#x2F;strong&gt; moves to a fresh cloned project: parent FSM actor, child actors per assembly, a single-writer ledger, correlation IDs end-to-end, diagnostics derived from the ledger, and an actuation child for buzzer&#x2F;egress I&#x2F;O. See the &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_2#roadmap&quot;&gt;roadmap&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;summary&quot;&gt;Summary&lt;&#x2F;h3&gt;
+&lt;p&gt;Stage III is a refactor-and-contracts milestone: &lt;strong&gt;same demo, stronger internals&lt;&#x2F;strong&gt; — assemblies, a designed observation split, a strict turn contract, explicit anti-flap policy, and live-run hardening. The next stage splits the monolith along the assembly seams we drew here.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;&lt;strong&gt;Where the code is&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Repository: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_3&quot;&gt;&lt;strong&gt;&lt;code&gt;sdv_simulation_3&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt;&lt;&#x2F;a&gt; on GitHub — builds on &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_2&quot;&gt;&lt;strong&gt;&lt;code&gt;sdv_simulation_2&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt;&lt;&#x2F;a&gt;.&lt;&#x2F;li&gt;
+&lt;li&gt;Operational reference: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_2&#x2F;blob&#x2F;main&#x2F;README.md&quot;&gt;project &lt;strong&gt;README&lt;&#x2F;strong&gt;&lt;&#x2F;a&gt; (crate layout, wire IDs, tests, flags, demo assets).&lt;&#x2F;li&gt;
+&lt;li&gt;This post is the &lt;strong&gt;narrative&lt;&#x2F;strong&gt;; the README on &lt;strong&gt;&lt;code&gt;main&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt; is the &lt;strong&gt;current truth&lt;&#x2F;strong&gt; for running and extending the prototype.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;&lt;strong&gt;Series:&lt;&#x2F;strong&gt; Prototyping a Software Defined Vehicle&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;← Previous&lt;&#x2F;strong&gt; &lt;a href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-2&#x2F;&quot;&gt;Stage II&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;All posts in this series: &lt;a href=&quot;&#x2F;tags&#x2F;sdv-prototype&#x2F;&quot;&gt;sdv-prototype&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
     <entry xml:lang="en">
         <title>Prototyping a Software Defined Vehicle - Stage II</title>
         <published>2026-05-28T00:00:00+00:00</published>
@@ -102,7 +204,7 @@
 &lt;&#x2F;ul&gt;
 &lt;hr &#x2F;&gt;
 &lt;p&gt;&lt;strong&gt;Series:&lt;&#x2F;strong&gt; Prototyping a Software Defined Vehicle&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;← Previous&lt;&#x2F;strong&gt; &lt;a href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-2&#x2F;&quot;&gt;Stage II&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;← Previous&lt;&#x2F;strong&gt; &lt;a href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-1&#x2F;&quot;&gt;Stage I&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
 &lt;p&gt;All posts in this series: &lt;a href=&quot;&#x2F;tags&#x2F;sdv-prototype&#x2F;&quot;&gt;sdv-prototype&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
 </content>
         
