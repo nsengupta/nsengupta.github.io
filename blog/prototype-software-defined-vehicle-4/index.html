@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  
+  
+  <meta name="description" content="Software Programming, reflections, soliloquys " />
+  
+  
+
+  <title>
+    
+    Prototyping a Software Defined Vehicle - Stage IV
+    
+</title>
+
+  
+  <link rel="stylesheet" href="https://nsengupta.github.io/site.css">
+  
+
+  
+  
+</head>
+
+<body class="hack dark main container">
+  
+
+<style>
+body.container {
+    max-width: 68rem !important;
+}
+
+article p,
+article li,
+main p,
+main li {
+    font-size: 1.08rem !important;
+    line-height: 1.65 !important;
+}
+
+article h1,
+main h1 {
+    font-size: 1.8rem !important;
+    line-height: 1.3 !important;
+}
+
+article h2,
+main h2 {
+    font-size: 1.5rem !important;
+}
+
+article h3,
+main h3 {
+    font-size: 1.25rem !important;
+}
+
+/* Remove the gigantic ===== decoration */
+.hack h1:after {
+    content: "" !important;
+}
+
+/* Remove Markdown-style heading prefixes (#, ##, ###, etc.) */
+.hack h2:before,
+.hack h3:before,
+.hack h4:before,
+.hack h5:before,
+.hack h6:before {
+    content: "" !important;
+}
+</style>
+
+
+    
+        
+  
+  <header class="nav-header">
+    <nav itemscope itemtype="http://schema.org/SiteNavigationElement" class="navbar">
+      <div class="nav-links">
+        
+        <a itemprop="url"
+          class=""
+          href="/">
+          <span itemprop="name">Home</span></a>
+        
+        <a itemprop="url"
+          class=""
+          href="/blog">
+          <span itemprop="name">Technical Blog</span></a>
+        
+      </div>
+    </nav>
+    
+
+  </header>
+  
+  
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">Prototyping a Software Defined Vehicle - Stage IV</h1>
+        <span class="muted">
+    <svg class="icon i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>7 minute read</span>
+    <svg class="icon i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    Published: 2026-06-25
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <h3 id="preface">Preface</h3>
+<p>The preceding <a href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-3/">stage</a> gave us one actorified assembly — Headlamp as a <strong>twinlet</strong> under the Brain, quiescence over multiple FSM hops, and a ledger row for every decision. The demo still looked familiar: three processes on <code>vcan0</code>, lux-driven headlamp cycles, ACK/NACK on the wire.</p>
+<p><strong>Stage III proved the twinlet pattern.</strong> Stage IV asks what happens when a <strong>second</strong> assembly joins — and when two zones can reply <strong>out of order</strong>. The answer is not “add another match arm and hope.” It is a reorder buffer, explicit boot/shutdown states in the Brain FSM, and a wiper that runs on rain without an ACK round-trip. Same stdout philosophy: observable transitions, intent on the wire. <strong>Four processes</strong> now — emulator, gateway, headlamp actuator, wiper actuator — but the real story is inside the Brain’s coordination fabric.</p>
+<hr />
+<h3 id="what-actually-changed-and-what-did-not">What actually changed (and what did not)</h3>
+<p><strong>Unchanged:</strong> the twin still emits <strong>intent</strong>, not raw I/O; headlamp still has lux deadband, <code>OnRequested</code>/<code>OffRequested</code>, and hardware ACK; quiescence and detectors still promote unsafe cuts into internal FSM events; the ledger remains the authoritative audit trail.</p>
+<p><strong>Changed underneath (from → to) :</strong></p>
+<ul>
+<li>one <code>pending_turn</code> slot → <strong><code>VecDeque</code> reorder buffer (ROB)</strong>;</li>
+<li>ad-hoc ignition handling → <strong><code>PreparingToStart</code> / <code>PreparingToStop</code></strong> FSM states;</li>
+<li>headlamp-specific mailbox variants → <strong>generic <code>ZoneReady</code> / <code>ZoneSpontaneous</code> envelopes</strong>;</li>
+<li>Brain <code>handle()</code> capped at <strong>four arms</strong> regardless of assembly count;</li>
+<li><strong><code>WiperActor</code></strong> as second twinlet with rain ingress and a dedicated actuator process.</li>
+</ul>
+<p>Details, wire tables, and file paths live in the <a rel="external" href="https://github.com/nsengupta/sdv_simulation_4/blob/main/README.md"><strong>Iteration 4 README</strong></a>.</p>
+<hr />
+<h3 id="the-moment-stage-iii-could-not-scale">The moment Stage III could not scale</h3>
+<p>Picture two sensor events arriving back-to-back while the car is already driving:</p>
+<ol>
+<li>Lux drops — Headlamp twinlet must consult.</li>
+<li>Rain starts — Wiper twinlet must consult.</li>
+</ol>
+<p>In Stage III, only <strong>one</strong> turn could be pending. Event 2 waited in a backlog until Headlamp finished — including full tell-back timeouts if the actuator was slow. Worse: when rain finally drained, the ledger’s <code>initial_ctx</code> reflected the world <em>after</em> lux had already committed, not the moment rain arrived. Causal order on the wire, false order in the audit trail.</p>
+<p>Adding Wiper did not break the headlamp. It broke the <strong>coordination assumption</strong> that one assembly’s latency is everyone’s latency.</p>
+<hr />
+<img title="" src="./SDV-Blog-Inputs-4.1.jpg" alt="architecture" width="605">
+<hr />
+<h3 id="design-decision-1-reorder-buffer-tell-in-parallel-commit-in-order">Design decision 1 — Reorder buffer: tell in parallel, commit in order</h3>
+<p>Stage IV replaces the single pending slot with a <strong><code>VecDeque</code> of turn barriers</strong>. Each ingress event pushes its own barrier; each barrier tracks which assemblies must reply before that turn can commit. Tells fire immediately — Headlamp and Wiper work in parallel. The drain loop inspects only the <strong>front</strong> barrier: if its <code>pending</code> set is empty, pop and commit; otherwise wait. Replies that arrive early for a later turn are stored; they do not let the ledger skip ahead.</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>T1  lux ingress   → barrier(turn=1, pending={Headlamp}); tell Headlamp</span></span>
+<span class="giallo-l"><span>T2  rain ingress  → barrier(turn=2, pending={Wiper});   tell Wiper</span></span>
+<span class="giallo-l"><span>T3  Wiper replies  → turn=2 still blocked behind turn=1</span></span>
+<span class="giallo-l"><span>T4  Headlamp replies → commit turn=1, then commit turn=2</span></span>
+<span class="giallo-l"><span>    Ledger turn=2: initial_ctx matches the instant rain arrived ✅</span></span></code></pre>
+<p>This is the classic <strong>issue-in-order / retire-in-order</strong> pattern — a reorder buffer between parallel consultants and a single-writer ledger. Per-assembly retry timers live inside each barrier, so a stuck headlamp does not stall wiper tell-backs for unrelated events.</p>
+<hr />
+<h3 id="design-decision-2-boot-and-shutdown-belong-in-the-fsm">Design decision 2 — Boot and shutdown belong in the FSM</h3>
+<p>Iteration 3 had no states for “waiting for assemblies to come alive.” <code>PowerOn</code> jumped toward <code>Idle</code> while the actor shoehorned <code>BecomeOn</code> coordination into tell-back plumbing. Stage IV makes the lifecycle explicit:</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>Off ──PowerOn──► PreparingToStart({Headlamp, Wiper})</span></span>
+<span class="giallo-l"><span>                      │ each AssemblyZoneReady removes one id</span></span>
+<span class="giallo-l"><span>                      ▼</span></span>
+<span class="giallo-l"><span>                    Idle ──PowerOff──► PreparingToStop({Headlamp, Wiper}) ──► Off</span></span></code></pre>
+<p>The assembly countdown is not a separate field on <code>VehicleContext</code> — it <strong>is</strong> the state:
+<code>PreparingToStart({Headlamp, Wiper})</code> holds the set of assemblies still starting up. Each
+<code>AssemblyZoneReady</code> removes one id; when the set is empty, the FSM moves to <code>Idle</code> (while
+starting) or <code>Off</code> (while stopping).
+<code>transition()</code> does all of this from the state variant alone.</p>
+<p>While preparing to start (or stop), external sensor events may still arrive in Brain Actor's
+mailbox. They are <strong>recorded with <code>applied: false</code> and discarded</strong>. They are not replayed from a
+backlog. Why? Because after booting (<code>Idle</code> state) , fresh events describe the world <em>now</em>, not a
+stale snapshot from milliseconds ago. Similarly, while preparing to stop, all other external
+events that arrive, are extraneous: ledger doesn't need to replay them.</p>
+<hr />
+<h3 id="design-decision-3-four-mailbox-arms-n-assemblies">Design decision 3 — Four mailbox arms, N assemblies</h3>
+<p>Stage III named every twinlet in the Brain’s vocabulary: <code>HeadlampZoneReady</code>, <code>HeadlampZoneSpontaneous</code>, and a timeout variant that retried all zones together. Two assemblies would have meant six or more <code>handle()</code> arms — growth with every new zone.</p>
+<p>Stage IV collapses to a generic envelope:</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="rust"><span class="giallo-l"><span style="color: #FF79C6;">enum</span><span style="color: #8BE9FD;font-style: italic;"> DigitalTwinCarVocabulary</span><span> {</span></span>
+<span class="giallo-l"><span style="color: #50FA7B;">    Fsm</span><span>(</span><span style="color: #8BE9FD;font-style: italic;">FsmEvent</span><span>),</span></span>
+<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">    ZoneReady</span><span> { zone_id, turn_id, reply },</span></span>
+<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">    ZoneSpontaneous</span><span> { zone_id, event },</span></span>
+<span class="giallo-l"><span style="color: #8BE9FD;font-style: italic;">    ZoneTellBackTimeout</span><span> { zone_id, turn_id, tell_attempt },</span></span>
+<span class="giallo-l"><span style="color: #50FA7B;">    GetStatus</span><span>(</span><span style="color: #FF79C6;">...</span><span>),</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p><code>handle()</code> has <strong>four arms</strong>. Adding a third assembly means a new <code>AssemblyId</code>, a new twinlet actor, and routing in <code>zone_message_for_event</code> — <strong>zero new arms</strong> in the Brain. That routing function is state-aware as well: while the Brain is booting or shutting down, external sensor events are not forwarded to any twinlet — no tell is sent.</p>
+<hr />
+<h3 id="design-decision-4-wiper-the-simpler-twinlet">Design decision 4 — Wiper: the simpler twinlet</h3>
+<p>Headlamp is the hard case — lux threshold, pending actuation states, ACK timer, spontaneous tell-back when the actuator goes silent. Wiper is deliberately lighter.</p>
+<p>Rain is projected from CAN (<code>VssSignal::RainDetected</code>); the Brain routes <code>RainsStarted</code> / <code>RainsStopped</code> to <code>WiperActor</code> while in <code>Idle</code> or <code>Driving</code>. The wiper zone has three states (<code>Off</code> / <code>Ready</code> / <code>Running</code>), <strong>no</strong> <code>OnRequested</code> intermediates, <strong>no</strong> hardware ACK protocol. A successful tell returns <code>ZoneReady</code> in the same handling cycle; outcomes become <code>StartWiper</code> / <code>StopWiper</code> on CAN via a fourth process — <code>wiper_actuator</code> — that logs motor commands (with an optional drop-probability env var for chaos testing).</p>
+<p>Same twinlet contract — tell, tell-back, timeout — but the assembly teaches a second lesson: <strong>not every zone needs headlamp’s ceremony</strong>. Match the protocol weight to the hardware story.</p>
+<hr />
+<h3 id="running-the-four-process-demo">Running the four-process demo</h3>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="shellscript"><span class="giallo-l"><span style="color: #6272A4;"># vcan0 up; then four terminals:</span></span>
+<span class="giallo-l"><span style="color: #50FA7B;">cargo</span><span style="color: #F1FA8C;"> run</span><span style="color: #BD93F9;"> -p</span><span style="color: #F1FA8C;"> emulator</span></span>
+<span class="giallo-l"><span style="color: #50FA7B;">cargo</span><span style="color: #F1FA8C;"> run</span><span style="color: #BD93F9;"> -p</span><span style="color: #F1FA8C;"> front_headlamp_actuator</span></span>
+<span class="giallo-l"><span style="color: #50FA7B;">cargo</span><span style="color: #F1FA8C;"> run</span><span style="color: #BD93F9;"> -p</span><span style="color: #F1FA8C;"> wiper_actuator</span></span>
+<span class="giallo-l"><span style="color: #50FA7B;">cargo</span><span style="color: #F1FA8C;"> run</span><span style="color: #BD93F9;"> -p</span><span style="color: #F1FA8C;"> gateway</span><span style="color: #6272A4;">          # optional: --print-transitions-only</span></span></code></pre>
+<p>Set <code>EMULATOR_RAIN_PROB</code> to see rain frames on the bus; watch <code>PreparingToStart</code> shrink as each assembly reports ready, then rain flip the wiper to <code>Running</code> while lux still drives the lamp. Coloured transition rows in ledger-only mode show boot barriers and parallel turns without diagnostic noise.</p>
+<hr />
+<h3 id="what-comes-next">What comes next</h3>
+<p>Reconciliation for stuck <code>ActuationIncomplete</code> headlamp states; fuller end-to-end assembly interaction tests with rain and driving; optional CAN-emulated ignition; moving actuation egress into its own child actor so the Brain never blocks on CAN back-pressure. The coordination fabric is in place — the next iteration can focus on resilience and observability at the edges.</p>
+<hr />
+<h3 id="summary">Summary</h3>
+<p>Stage IV is a <strong>coordination-correctness</strong> milestone: same domain core and ledger discipline, but the Brain can consult multiple assemblies in parallel without lying to the audit trail. The reorder buffer preserves ingress order; preparing states make boot and shutdown part of the FSM’s mode story; generic envelopes cap <code>handle()</code> growth; Wiper proves the twinlet template clones to a simpler assembly and a fourth process on the bus.</p>
+<p>From the driver’s perspective: rain starts, wipers run, lamps still respond to tunnels. From the developer’s perspective: the monolith’s assembly seams are now <strong>structurally</strong> safe to keep opening.</p>
+<hr />
+<p><strong>Where the code is</strong></p>
+<ul>
+<li>Repository: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_4"><strong><code>sdv_simulation_4</code></strong></a> on GitHub — builds on <a rel="external" href="https://github.com/nsengupta/sdv_simulation_3"><strong><code>sdv_simulation_3</code></strong></a>.</li>
+<li>Operational reference: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_4/blob/main/README.md">project <strong>README</strong></a> (crate layout, wire IDs, tests, flags, assembly diagrams).</li>
+<li>Design history: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_4/blob/main/docs/Wiper-Assembly-Design-Plan.md"><code>docs/Wiper-Assembly-Design-Plan.md</code></a> (implementation playbook retained for reference).</li>
+<li>This post is the <strong>narrative</strong>; the README on <strong><code>main</code></strong> is the <strong>current truth</strong> for running and extending the prototype.</li>
+</ul>
+<hr />
+<p><strong>Series:</strong> Prototyping a Software Defined Vehicle</p>
+<p><strong>← Previous</strong> <a href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-3/">Stage III</a></p>
+<p>All posts in this series: <a href="/tags/sdv-prototype/">sdv-prototype</a></p>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                
+                    
+                    tagged
+                    
+                        <a href="https://nsengupta.github.io/tags/sdv-prototype/">sdv-prototype</a>
+                        
+                    
+                
+            </p>
+            
+            
+        </footer>
+    
+</article>
+
+
+
+
+
+  <!-- optional scripts -->
+  
+  
+
+  
+
+  
+
+  
+</body>
+
+</html>
