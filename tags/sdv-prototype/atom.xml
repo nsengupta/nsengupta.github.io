@@ -5,8 +5,105 @@
     <link rel="self" type="application/atom+xml" href="https://nsengupta.github.io/tags/sdv-prototype/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://nsengupta.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2026-06-25T00:00:00+00:00</updated>
+    <updated>2026-06-26T00:00:00+00:00</updated>
     <id>https://nsengupta.github.io/tags/sdv-prototype/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Digital Twin: Designing an Actor-Based SDV Prototype in Rust (Milestone 1)</title>
+        <published>2026-06-26T00:00:00+00:00</published>
+        <updated>2026-06-26T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-milestone-1/"/>
+        <id>https://nsengupta.github.io/blog/prototype-software-defined-vehicle-milestone-1/</id>
+        
+        <content type="html" xml:base="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-milestone-1/">&lt;h3 id=&quot;&quot;&gt;&lt;&#x2F;h3&gt;
+&lt;h3 id=&quot;motivation&quot;&gt;Motivation&lt;&#x2F;h3&gt;
+&lt;p&gt;Modern Software-Defined Vehicles require a delicate balance: handling unpredictable, high-frequency events while maintaining deterministic, thread-safe system states across simulated actuators and components. To explore how modern systems programming can solve this, I have built a working Digital Car Twin prototype from scratch. By leveraging Rust’s memory safety guarantees and an asynchronous, actor-based architecture driven by Tokio, this project moves from a static vehicle description to a fully reactive runtime environment capable of managing component state transitions. Here is a retrospective on how that architecture came together, the critical design choices made along the way, and what it reveals about the plumbing of modern automotive software.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;open-file-folder-dive-into-the-journey-source-code&quot;&gt;📂 Dive Into the Journey &amp;amp; Source Code&lt;&#x2F;h3&gt;
+&lt;p&gt;This capping post summarizes a five-part engineering sprint. If you want to dive straight into the source code or track how this system evolved piece-by-piece, use the links below:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;The Latest Iteration (&lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-4&#x2F;&quot;&gt;milestone-1&lt;&#x2F;a&gt;):&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;em&gt;This contains the latest working codebase, complete with the Reorder Buffer implementation and execution ledger.&lt;&#x2F;em&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;The code is &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_4&quot;&gt;here&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;The Predecessor Iterations:&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-0&#x2F;&quot;&gt;Stage 0: The Genesis &amp;amp; Conceptual Framework&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-1&#x2F;&quot;&gt;Stage I: Defining the Static Vehicle Manifest&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-2&#x2F;&quot;&gt;Stage II: Moving to an Active Runtime Context&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-3&#x2F;&quot;&gt;Stage III: The Actor Framework &amp;amp; Assembly as an Actor&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;core-architecture&quot;&gt;Core Architecture&lt;&#x2F;h3&gt;
+&lt;p&gt;To make this reactive model work without physical hardware, the architecture relies on a clean separation of concerns between a simulated environment, a protocol gateway, and an isolated actor runtime:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;The CAN Bus &amp;amp; Simulator Layer:&lt;&#x2F;strong&gt; A simulator injects high-frequency operational events (such as visibility or ambient-light conditions) into a virtual CAN bus. This bus serves as the sole communication medium; simulated actuators receive their target instructions through it, and the &lt;em&gt;Digital Twin&lt;&#x2F;em&gt; (see below) reads from it.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;The Gateway Guard:&lt;&#x2F;strong&gt; To protect the core logic (of the Digital Twin) from raw I&#x2F;O blocking, a specialized Gateway acts as the boundary. It handles the low-level mechanics of reading incoming frames from the CAN bus and serializing commands back onto it. Additionally, it translates CAN Bus payload into Digital Twin&#x27;s own vocabulary.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;The Actor Brain &amp;amp; State Ledger:&lt;&#x2F;strong&gt; At the heart sits the Digital Twin, implemented as a hierarchical actor system using #ractor. A parent actor manages dedicated child actors that implement individual component - called &lt;u&gt;Assembly&lt;&#x2F;u&gt; - behaviour. This &quot;brain&quot; processes the stream of events forwarded by the Gateway, maintains the authoritative runtime state (&lt;code&gt;VehicleContext&lt;&#x2F;code&gt;), is responsible for deterministic state managament of the Twin, and maintains a precise ledger of exactly how every single event is handled.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;solving-the-causal-ordering-challenge-at-the-edge&quot;&gt;Solving the Causal Ordering Challenge at the Edge&lt;&#x2F;h3&gt;
+&lt;p&gt;While an actor-based architecture provides an elegant, single-threaded processing guarantee per mailbox, a major architectural challenge emerged when integrating the asynchronous emulator: &lt;strong&gt;Causal Inversion&lt;&#x2F;strong&gt;.&lt;&#x2F;p&gt;
+&lt;h4 id=&quot;the-problem-out-of-order-tell-backs&quot;&gt;&lt;strong&gt;The Problem: Out-of-Order &#x27;Tell-Backs&#x27;&lt;&#x2F;strong&gt;&lt;&#x2F;h4&gt;
+&lt;p&gt;The simulator injects events randomly and these events reach the core Digital Twin Brain Actor&#x27;s mailbox in any order. The Brain Actor often issues asynchronous instructions (&lt;code&gt;Tell&lt;&#x2F;code&gt;) to multiple sub-assemblies (children Actors). However, response events (&lt;code&gt;Tell-Back&lt;&#x2F;code&gt;) from these assemblies can arrive back at the brain actor&#x27;s mailbox out of order or interleaved.&lt;&#x2F;p&gt;
+&lt;p&gt;If processed naively, overlapping event processing breaks the state machine&#x27;s determinism. It introduces interleaving anomalies into the transition ledger, destroying our ability to perform an authentic, offline replay of the vehicle&#x27;s history.&lt;&#x2F;p&gt;
+&lt;h4 id=&quot;the-solution-implementing-a-reorder-buffer-rob&quot;&gt;&lt;strong&gt;The Solution: Implementing a Reorder Buffer (ROB)&lt;&#x2F;strong&gt;&lt;&#x2F;h4&gt;
+&lt;p&gt;To enforce deterministic state transitions and ensure the ledger narrates the absolute truth of event causality, I implemented a &lt;strong&gt;Reorder Buffer&lt;&#x2F;strong&gt; data structure directly within the single-threaded actor loop.&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Correlation &amp;amp; Tracking:&lt;&#x2F;strong&gt; Every outbound &lt;code&gt;Tell&lt;&#x2F;code&gt; is tagged with a unique sequence ID. When interleaved &lt;code&gt;Tell-Back&lt;&#x2F;code&gt; responses arrive out of order, the FSM uses the buffer to pair them correctly.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Enforcing Causal Order:&lt;&#x2F;strong&gt; The brain actor defers processing a later response if a causally prior event is still pending. The ROB holds these out-of-order responses in a parked state, releasing them to the FSM only when the missing sequence gaps are filled.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;A True Ledger:&lt;&#x2F;strong&gt; Because the single-threaded actor only commits transitions to the ledger &lt;em&gt;after&lt;&#x2F;em&gt; the ROB restores the correct sequence, the resulting transition log is truthful about what the Digital Twin has gone through so far.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;what-this-milestone-achieves-the-horizon-ahead&quot;&gt;What This Milestone Achieves &amp;amp; The Horizon Ahead&lt;&#x2F;h3&gt;
+&lt;h4 id=&quot;the-baseline&quot;&gt;&lt;strong&gt;The Baseline&lt;&#x2F;strong&gt;&lt;&#x2F;h4&gt;
+&lt;p&gt;What this 5-stage effort establishes is a robust, software-only capture of how a vehicle behaves from start to stop. By using only &lt;code&gt;#rustlang&lt;&#x2F;code&gt;, and a lean automation layer of #bash scripts to spin up executables and collect telemetry logs, the prototype validates that real-time digital twin tracking can be achieved deterministically without relying on heavy proprietary suites.&lt;&#x2F;p&gt;
+&lt;h4 id=&quot;the-roadmap&quot;&gt;&lt;strong&gt;The Roadmap&lt;&#x2F;strong&gt;&lt;&#x2F;h4&gt;
+&lt;p&gt;There is plenty of territory left to map&#x2F;implement. Moving forward, the natural progression of this architecture involves moving past simulated structures and deepening compliance with true automotive standards:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Ecosystem Middleware:&lt;&#x2F;strong&gt; Abstracting the custom I&#x2F;O layer by integrating core Eclipse SDV technologies like &lt;strong&gt;uProtocol&lt;&#x2F;strong&gt; (for transport-agnostic service communication) and &lt;strong&gt;Eclipse Zenoh&lt;&#x2F;strong&gt; (for ultra-low overhead pub&#x2F;sub scaling).&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Deterministic Replay Tooling:&lt;&#x2F;strong&gt; Building a dedicated offline evaluation tool capable of reading the transition ledger and perfectly reconstructing the Digital Twin’s runtime behavior step-by-step.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Advanced FSM &amp;amp; Safety Refinements:&lt;&#x2F;strong&gt; Transitioning the current bare-minimum diagnosis mechanics into structured safety verification functions rather than loose conditional expressions. Additionally, replacing match-expression guard patterns with dedicated Entry&#x2F;Exit lifecycle functions in the state transition matrix.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Visual Telemetry:&lt;&#x2F;strong&gt; Wiring the data stream into a lightweight, Terminal User Interface (TUI)-based digital dashboard application to visualize live state changes.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;hr &#x2F;&gt;
+</content>
+        
+    </entry>
     <entry xml:lang="en">
         <title>Prototyping a Software Defined Vehicle - Stage IV</title>
         <published>2026-06-25T00:00:00+00:00</published>
