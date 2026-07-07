@@ -21,6 +21,10 @@
         <loc>https://nsengupta.github.io/blog/page/2/</loc>
     </url>
     <url>
+        <loc>https://nsengupta.github.io/blog/product-owners-technical-debt-matters/</loc>
+        <lastmod>2026-07-01</lastmod>
+    </url>
+    <url>
         <loc>https://nsengupta.github.io/blog/prototype-software-defined-vehicle-0/</loc>
         <lastmod>2026-05-10</lastmod>
     </url>
@@ -58,6 +62,18 @@
         <loc>https://nsengupta.github.io/tags/</loc>
     </url>
     <url>
+        <loc>https://nsengupta.github.io/tags/architecture/</loc>
+    </url>
+    <url>
+        <loc>https://nsengupta.github.io/tags/product-management/</loc>
+    </url>
+    <url>
         <loc>https://nsengupta.github.io/tags/sdv-prototype/</loc>
+    </url>
+    <url>
+        <loc>https://nsengupta.github.io/tags/software-engineering/</loc>
+    </url>
+    <url>
+        <loc>https://nsengupta.github.io/tags/technical-debt/</loc>
     </url>
 </urlset>

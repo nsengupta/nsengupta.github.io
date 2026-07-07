@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Nirmalya Sengupta - Software Engineering</title>
+    <subtitle>Software Programming, reflections, soliloquys </subtitle>
+    <link rel="self" type="application/atom+xml" href="https://nsengupta.github.io/tags/software-engineering/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://nsengupta.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2026-07-01T00:00:00+00:00</updated>
+    <id>https://nsengupta.github.io/tags/software-engineering/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Product Owners, the Technical debt matters to you too</title>
+        <published>2026-07-01T00:00:00+00:00</published>
+        <updated>2026-07-01T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/product-owners-technical-debt-matters/"/>
+        <id>https://nsengupta.github.io/blog/product-owners-technical-debt-matters/</id>
+        
+        <content type="html" xml:base="https://nsengupta.github.io/blog/product-owners-technical-debt-matters/">&lt;h3 id=&quot;background&quot;&gt;Background&lt;&#x2F;h3&gt;
+&lt;p&gt;I originally published this piece on Medium (&lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;baatchitweet.medium.com&#x2F;product-owners-the-technical-debt-matters-to-you-too-cb3d08fa1fed&quot;&gt;here&lt;&#x2F;a&gt;) in January&#x27;2023. I am reproducing the blog here for two reasons: (1) to bring together my past blogs in a single, accessible and easily manageable repository and (2) the topic is still very relevant , IMO even in these days where a complete application is said to built by prompting an AI Agent alone.  As systems evolve and architectural complexity grows—especially when dealing with distributed systems or long-term product lifecycles—the friction between shipping fast and maintaining architectural integrity remains the ultimate balancing act. Here is my take on why tech debt isn&#x27;t just an engineering headache, but a product strategy bottleneck.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;tl-dr&quot;&gt;TL;DR&lt;&#x2F;h3&gt;
+&lt;p&gt;Technical Debt, is unavoidable in the life of a successful software. A l-o-t has been (and still being) discussed on this and many have spoken about its nature, the risk it poses and ways to deal with it. However, an overwhelming number of these, explains it from the PoV of the Engineering (or Development) team. Here&#x27;s my attempt to expound the topic for the *&lt;em&gt;Business team&lt;&#x2F;em&gt;: how they should see this inseparable part of software. It is my considered opinion that those who put in money to have the software built and then sell, must understand where and how, the debt hurts.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;preface&quot;&gt;Preface&lt;&#x2F;h3&gt;
+&lt;p&gt;Tech-[debt](&lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;en.wikipedia.org&#x2F;wiki&#x2F;Technical_debt&quot;&gt;Technical debt - Wikipedia&lt;&#x2F;a&gt;) , is perhaps one of the most common topics that the we, in the business of developing software, love to discuss, if not to embroil ourselves in. In a street-lingo précis, Tech-debt represents a bunch of TODOs in the software that exists in the code, database, configuration, deployment strategy etc. These come into existence primarily because the Business side (Product Owners&#x2F;Stakeholders&#x2F;Sponsors) wants the software to be usable soon, and the ENGineering side (Developers&#x2F;QA&#x2F;Devops&#x2F;Support) complies, leaving spots of uncleanliness (software-wise, please) behind, as a show of pragmatism. These spots carry cost (of clean up), which one may or may not want to pay forthwith. This is because, as in a financial debt, carrying a Tech-debt for some benefit now, and paying the increased technical due later, may make perfect business sense.
+In general, people agree that such a debt is going to bite as some point in time. But, if it can be absorbed in some way or the other - without having any ruinous effect on the software and therefore, the business  -  there is nothing really grossly wrong about it. After all, if a stakeholder  -  who pays for what is being built and going to be used  - decides to view it as an unavoidable cost measured against other benefits, there is nothing really to complain.&lt;&#x2F;p&gt;
+&lt;p&gt;Myriads of friendly discussions, verbal fisticuffs, compelling presentations, persuasive video-clips and serious research on the topic later, why do I write about this topic again? More to the point, is there anything that I am going to add to it, really?
+Well, a very large proportion of the available materials on Tech-debt treats the subject from the development team&#x27;s side. My intention is to bring to the Product owners, Stakeholders, or Sponsors, the aspect of Tech-debt and the cost associated with it! It is my considered opinion that those who put in money to have the software built and then sell, must understand where and how, the debt hurts. I am addressing them in second person, in this blog. It is their attention that I am drawing, in this article.&lt;&#x2F;p&gt;
+&lt;p&gt;📝 I am not to going elaborate on what is Technical debt, how does a piece of software accrue this unavoidable yet unwelcome payable and how is a ENG team supposed to deal with it. Tons of very good materials reside on the &#x27;Net which explain, elaborate and exemplify these aspects. If you are interested to know first-hand or know more, I have included a bunch of links at the end of this article.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;the-murmur&quot;&gt;The murmur&lt;&#x2F;h3&gt;
+&lt;p&gt;To begin with, trust your ENG team; especially the seniors. They are much likely to sense when things are gradually becoming difficult to ignore. If they are mentioning this in discussions and reviews, pay attention.&lt;&#x2F;p&gt;
+&lt;p&gt;To be fair, any dyed-in-the-wool software developer, feels very happy to see a well-built software being shipped and used. That an user (internal or external) finds the software useful, is what developers love to hear. There is perhaps no better incentive than this.
+When a growing Tech-debt is discomfiting them, and they are expressing it, take that as a good sign. What they are telling you, is that they care for what they are building and that is what you want to be built. Your inattention can be taken in as your disregard for the quality of what you are paying for. The developers can see through this very quickly. And, after some time, they will begin to care less for what they build. The fallout will be borne by you and your users.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;This &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;www.mckinsey.com&#x2F;capabilities&#x2F;tech-and-ai&#x2F;our-insights&#x2F;tech-debt-reclaiming-tech-equity&quot;&gt;report&lt;&#x2F;a&gt; from year 2020, from McKinsey &amp;amp; Company, says that CIOs believe that Tech-debt is increasing and a vast majority of them spend less than 20% of their budget to stave it off.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;the-velocity&quot;&gt;The velocity&lt;&#x2F;h3&gt;
+&lt;p&gt;As your paying customers increase in number, they expect predictable behaviour from the software. At the same time, your sales team acquires new customers too. While existing and popular features cannot falter, new features have to be added as well. The balance is crucial. More often than not, the velocity is measured by number of features shipped. However, if the software has been built keeping N simultaneous users in mind, to keep it running for N + m users, requires work, even if  -  for argument&#x27;s sake  -  no new feature is added. Perhaps the Customer Support team is engaged with the ENG team, in the very useful and necessary effort to settle the new users. Perhaps your Business Analytics team is asking for some set of data, unavailable so far and the ENG team is busy preparing for it. The reduced &lt;em&gt;velocity&lt;&#x2F;em&gt;  -  meaning, new features are not rolling out as rapidly as you expect  -  doesn&#x27;t mean that the ENG team is sluggish. On the contrary, they are helping the business be in the current, steady state. Under the hood, they are taking considerable effort to keep the Tech-debt as low as possible. It is worthwhile for you to bear in mind, that even though the Business sees slower newer features, the business assumes no brittleness in the existing features either. And, latter consumes what is called your ENG team&#x27;s bandwidth. That, in turn, affects velocity.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;the-internal-quality&quot;&gt;The Internal quality&lt;&#x2F;h3&gt;
+&lt;p&gt;Users judge the quality of a software primarily by the outward manifestation of it: ease of use, intuitiveness, completeness etc. These form the external quality of the software and bring in and&#x2F;or retain paying customers. However, how well the software deals with further, upcoming and inevitable changes depends on its internal quality. In plain terms, the internal quality is the property which determines the velocity (see above) ;&lt;&#x2F;p&gt;
+&lt;p&gt;for example:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;How quickly are customer-support issues resolved (remember, this may mean a release, a GA if you like, is faltering)?&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;How easily can 3rd party software be integrated (remember, not all inputs to the software will come through an web-page and your business&#x27; organic expansion may depend on ease of such integrations)&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;How frequently are released versions reported back with something broken (remember, the older the broken behaviour is, the higher is the cost of fixing it)
+How frequently are main DB (Tables &#x2F; Collections &#x2F; Documents etc.) modified for implementing quick changes or fixes?&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;How long does it take for new entrants in the team to get going&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;etc.&lt;&#x2F;p&gt;
+&lt;p&gt;The larger the unpaid Tech-debt, the higher is the chance that the software&#x27;s internal quality is compromised. It is in the interest of the business to help keep the level of internal quality, high.&lt;&#x2F;p&gt;
+&lt;p&gt;Martin Fowler  -  in his signature lucid style  -  has [written](&lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;martinfowler.com&#x2F;articles&#x2F;is-quality-worth-cost.html&quot;&gt;Is High Quality Software Worth the Cost?&lt;&#x2F;a&gt;) about the internal quality and its implications on the cost of software. If you are a sponsor of non-trivial, money-earning software, I encourage you to read it; especially the point of cruft, which according to me, soon becomes a sludge, if left unattended for too long.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;the-roadmap&quot;&gt;The Roadmap&lt;&#x2F;h3&gt;
+&lt;p&gt;The Roadmap lays out the plan of gradual transformation of the software being built, in keeping with what the Business needs. Almost always (in my experience), the milestones along these roadmaps, tend to focus on the newer things: everyone wants to watch the software flourish (what is a better word here?). Objectively speaking, there is nothing wrong with that view, but it is incorrect - and provenly detrimental in the longer run - to overlook the importance of consolidation of the internals of the software, before and while, we march forward. The ENG team is in the best position to have a sense of extent of (a) necessary consolidation and (b) the effort to undertake that.&lt;&#x2F;p&gt;
+&lt;p&gt;As an aside, the roadmap is liable to change any time, for a number of reasons. Like Kevlin &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;kevlin&#x2F;&quot;&gt;Henney&lt;&#x2F;a&gt; so pithily says in &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;www.infoq.com&#x2F;presentations&#x2F;six-impossible-things&#x2F;&quot;&gt;Six Impossible Things&lt;&#x2F;a&gt;:&lt;&#x2F;p&gt;
+&lt;p&gt;💭 &lt;strong&gt;If I only have one road, I don&#x27;t really need a roadmap.&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Think of it this way: if the product&#x27;s roadmap is susceptible to unforeseen changes in the prevailing business condition, then the structure behind the software is susceptible to unforeseen changes in the roadmap too. The question is how well can the existing version absorb these changes, without any adverse aftermath. This is where the quality of the software matters: the lesser the accumulated Tech-debt, the more is the inner resilience. And, of course, the level of craftsmanship of your ENG team is a very important factor too.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;the-cost&quot;&gt;The cost&lt;&#x2F;h3&gt;
+&lt;p&gt;That an useful software  -  meaning, in this case, having happy and paying users  -  is going to evolve is a well-known tenet in the world of software programming. In fact, the demand to evolve is an indication that the software is doing well and that, your business is benefited by it. A steadily evolving software is a result of not only great and appropriate design (high quality, refer above) but also  -  and, &lt;em&gt;this is important&lt;&#x2F;em&gt; -  better understanding of how is it supposed to work. As your Business team is understanding the prevailing and upcoming environment better, your ENG team too, is understanding what must be done, undone and redone, better. The act and benefit of discovery are applicable equally to both the teams. The Business team decides what additions and modifications must be done to the software, and the ENG team:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;Realizes what should have been done in the &lt;strong&gt;past&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;Confirms what should be done &lt;strong&gt;now&lt;&#x2F;strong&gt;, and&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;Suspends what will have to be done &lt;strong&gt;later&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;to the software.&lt;&#x2F;p&gt;
+&lt;p&gt;(2) is what the Business team is interested in, because while it carries a cost (time and effort) , it also offers immediate benefit (better features, happier users, more business). The ENG team, however, has to decide the extent of necessary &lt;u&gt;reparative measures&lt;&#x2F;u&gt; (ENG Team loves to refer to this as Refactoring) owing to (1) as well as how much should be left for (3). What is important for you to understand is this:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Things that ENG team decides not to do now, add to the Tech-debt&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;For every successive (3), the debt mounts&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The truth is that some Tech-debt will always remain in a live, useful and continually changing software, and not all of them will be (should be) serviced perhaps. However, what must not escape your radar as the &lt;strong&gt;Product owner &#x2F; Stakeholder &#x2F; Sponsor&lt;&#x2F;strong&gt;, is that the accumulating debt should not reach a level where servicing the debt is a Sisyphean task, economically speaking. Both the velocity and quality will suffer.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;the-team&quot;&gt;The team&lt;&#x2F;h3&gt;
+&lt;p&gt;Professional and sincere software programmers (your ENG team is comprised of them), want to do a good job. They tend to leave code in a better shape than it had been in the past Boy scout rule. This is their craft and they take pride in it. Mounting Tech-debt and woes originating from organisational disregard of it, affects their productivity and morale, and dents their pride. The quality of the software suffers, inevitably and worse, silently. A survey made by Stepsize in 2021 reveals that 52% of developers believe that Tech-debt negatively impacts a team&#x27;s morale and 66% believe that they would ship 100% faster if they had a process for servicing the debt.
+There is another aspect that needs a mention. New joinees in the ENG team get going faster if the software (including primary codebase, scripts, database schema, documentation, automated tests etc.) carry less Tech-debt. Much of the Tech-debt are left as assumptions, generally shared amongst the members of the team. People leaving ENG team is a regular affair. A software with reduced &#x2F; controlled Tech-debt has much less chance of being orphaned.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;I am a software programmer with ~3+decades of experience, having learnt through many successes I have influenced or caused, and many failures and mistakes I have made. I work as a platform technologist and a hands-on programmer.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;more-reading&quot;&gt;More reading:&lt;&#x2F;h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Martin Fowler&#x27;s &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;martinfowler.com&#x2F;bliki&#x2F;TechnicalDebt.html&quot;&gt;blog&lt;&#x2F;a&gt; on Technical debt (revised in 2019)&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;Ben &#x27;Hosk&#x27; on why programmers develop &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;javascript.plainenglish.io&#x2F;why-do-developers-create-low-quality-code-and-technical-debt-because-they-are-rewarded-for-it-76d4714dcef6&quot;&gt;low-quality code&lt;&#x2F;a&gt;?&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;On the topic of a quick calculation of &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;vfunction.com&#x2F;blog&#x2F;how-to-measure-technical-debt&#x2F;&quot;&gt;Technical debt&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;Raja Nagendra Kumar](https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;nagkumar&#x2F;), on the topic of &#x27;DONE&#x27; on LinkedIn&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;An useful [ready-reckone](&lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;stepsize.com&#x2F;blog&#x2F;complete-guide-to-technical-debt&quot;&gt;The Engineer’s Complete Guide to Technical Debt&lt;&#x2F;a&gt;)r of &#x27;Technical Debt&#x27; from Stepsize&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+</content>
+        
+    </entry>
+</feed>
