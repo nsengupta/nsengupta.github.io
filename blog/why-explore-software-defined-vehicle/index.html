@@ -112,7 +112,7 @@ main h3 {
         <circle cx="16" cy="16" r="14"/>
         <path d="M16 8 L16 16 20 20"/>
     </svg>
-    <span>2 minute read</span>
+    <span>3 minute read</span>
     <svg class="icon i-edit" viewBox="0 0 32 32"
          width="16" height="16" fill="none" stroke="currentcolor"
          stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
@@ -123,15 +123,22 @@ main h3 {
 </span>
     </header>
     <div itemprop="articleBody">
-      <h4 id="an-honest-confession">An honest confession:</h4>
+      <h3 id=""></h3>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>╔═══════════════════════╗</span></span>
+<span class="giallo-l"><span>║ An honest confession: ║</span></span>
+<span class="giallo-l"><span>╚═══════════════════════╝</span></span></code></pre>
 <p>I have ZERO background of the world of Automotive Engineering. Yet, I have decided to wade into this vast space, aided by a mix of trepidation and excitement. The raised eyebrows ask me: why?</p>
-<h4 id="i-see-a-car-as-a-host-of-a-complex-distributed-software-system">I see a car as a host of  a complex, distributed software system</h4>
-<p>For decades, automotive engineering was a world of combustion, torque, and physical linkages. From whatever I have been reading for some time now, today, that world is being abstracted. If we view the car not as a collection of mechanical parts, but as a complex device managed by a sophisticated OS, it becomes a problem of <strong>state management, concurrency, and predictable behavior.</strong></p>
-<p>I tell myself: If the behavior of a vehicle is governed by software, then it can—and should—be modeled using the same rigorous architectural patterns that govern the world's most reliable distributed systems.</p>
-<h4 id="but-then-i-am-a-rank-outsider-am-i-not">But, then, I am a rank outsider; am I not?</h4>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>╔═════════════════════════════════════════════════════════════════╗</span></span>
+<span class="giallo-l"><span>║ I see a car as a host of a complex, distributed software system ║</span></span>
+<span class="giallo-l"><span>╚═════════════════════════════════════════════════════════════════╝</span></span></code></pre>
+<p>For decades, automotive engineering was a world of combustion, torque, and physical linkages. From whatever I have been reading for some time now, today, that world is being abstracted. If we view the car not as a collection of mechanical parts, but as a complex device managed by a sophisticated OS, it becomes a problem of <strong>state management, concurrency, asynchronous / time-bound communication between components and and predictable behavior.</strong></p>
+<p>I tell myself: If the behavior of a vehicle is governed by software, then it can—and should—be modeled using the same rigorous architectural patterns that govern the world's most reliable distributed systems. And, I had the opportunity to work for over three decades, exactly in that area of protocol , communication, middleware, distributed systems software and diagnostics, on Linux/Unix. I see these same themes appearing repeatedly in the discussions happening in the world of SDV; domain has its own constraints but the problem-set is very similar to what I have worked for many years.</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>╔════════════════════════════════════════════╗</span></span>
+<span class="giallo-l"><span>║ But, then, I am a rank outsider; am I not? ║</span></span>
+<span class="giallo-l"><span>╚════════════════════════════════════════════╝</span></span></code></pre>
 <p>Yes. Very much.</p>
 <p>What, even by stretched arguments, can I even bring to the table?</p>
-<p>I come to this field with three decades of experience in architecting / designing / deploying  complex software, but zero history in traditional automotive engineering. I believe and posit that this "clean slate" is a strategic advantage. From my PoV, weneed to design a complex piece of software (the 'car' takes the backstage) and in that, the following are where my hands-on experience are quite applicable:</p>
+<p>I come to this field with three decades of experience in architecting / designing / deploying  complex software, but zero history in traditional automotive engineering. I believe and posit that this "clean slate" is a strategic advantage. From my PoV, we need to design a complex piece of software (the 'car' takes the backstage) and in that, the following are where my hands-on experience are quite applicable:</p>
 <ul>
 <li>
 <p><strong>Behavioral Modeling:</strong> Moving away from hard-wired logic toward flexible and auditable State Machines.</p>
@@ -143,7 +150,9 @@ main h3 {
 <p><strong>Abstraction over Complexity:</strong> Treating electro-mechanical components as peripheral interfaces, allowing the "Digital Twin" to become the primary source of truth.</p>
 </li>
 </ul>
-<h4 id="ok-what-is-the-path-that-i-have-charted">OK. What is the path that I have charted?</h4>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>╔═══════════════════════════════════════╗</span></span>
+<span class="giallo-l"><span>║ What is the path that I have charted? ║</span></span>
+<span class="giallo-l"><span>╚═══════════════════════════════════════╝</span></span></code></pre>
 <ul>
 <li>
 <p>Studying the world of Software Defined Vehicle primarliy through <a rel="external" href="https://eclipsesdv.org/">Eclipse SDV</a> initiative</p>
@@ -152,7 +161,7 @@ main h3 {
 <p>Making a mental model of how a <em>Digital Twin</em> of car is supposed to behave</p>
 </li>
 <li>
-<p>Build a small application that simulates such a <em>Digital Twin</em>, as a proof of concept, to establish if my understanding is correct and in the hope that some day, I will be able to contribute towards a real-life <em>Digital Twin</em>.</p>
+<p>Build a <em>Digital Twin</em> - all by myself - as a proof of concept, to establish if my understanding is correct and in the hope that some day, I will be able to contribute towards a real-life <em>Digital Twin</em>. This project is my way of understanding that intersection by building software (#code-first) rather than merely studying architectures.</p>
 </li>
 </ul>
 
