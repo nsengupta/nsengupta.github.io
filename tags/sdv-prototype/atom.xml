@@ -5,8 +5,128 @@
     <link rel="self" type="application/atom+xml" href="https://nsengupta.github.io/tags/sdv-prototype/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://nsengupta.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2026-06-26T00:00:00+00:00</updated>
+    <updated>2026-07-20T00:00:00+00:00</updated>
     <id>https://nsengupta.github.io/tags/sdv-prototype/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Prototyping a Software Defined Vehicle - Stage V</title>
+        <published>2026-07-20T00:00:00+00:00</published>
+        <updated>2026-07-20T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-5/"/>
+        <id>https://nsengupta.github.io/blog/prototype-software-defined-vehicle-5/</id>
+        
+        <content type="html" xml:base="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-5/">&lt;h3 id=&quot;preface&quot;&gt;Preface&lt;&#x2F;h3&gt;
+&lt;p&gt;Note: A capstone version 1.0 is blogged &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-milestone-1&#x2F;&quot;&gt;here&lt;&#x2F;a&gt;, as a &lt;em&gt;summary&lt;&#x2F;em&gt; of all the earlier phases till Phase 4.&lt;&#x2F;p&gt;
+&lt;p&gt;The preceding &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-4&quot;&gt;phase&lt;&#x2F;a&gt; gave us an arrangement where, we had&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Two Assemblies (Headlamp and Wiper), and actuators for each, picking (&#x27;switch on&#x27;)and pushing CAN messages on the Bus (&#x27;ack&#x27; or &#x27;nack&#x27;)&lt;&#x2F;li&gt;
+&lt;li&gt;Quiescence over multiple FSM hops&lt;&#x2F;li&gt;
+&lt;li&gt;Ledger row produced &#x2F; emitted for every FSM transition&lt;&#x2F;li&gt;
+&lt;li&gt;The Digital Twin (with its &lt;em&gt;Brain&lt;&#x2F;em&gt; actor) was owned by the Gateway application (run from the command line)&lt;&#x2F;li&gt;
+&lt;li&gt;An emulator which could generate messages representing real Vehicle&#x27;s environment, &lt;em&gt;ad infinitum&lt;&#x2F;em&gt; , but without any start &#x2F; stop indicators&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;To run the entire prototype suite, four #rustlang programs are executed from the command-line:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Gateway&lt;&#x2F;li&gt;
+&lt;li&gt;Emulator&lt;&#x2F;li&gt;
+&lt;li&gt;Headlamp Actuator&lt;&#x2F;li&gt;
+&lt;li&gt;Wiper Actuator&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;Of course, the CAN Bus has to run on the Linux OS.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;what-are-we-adding-in-this-phase-phase-5&quot;&gt;What are we adding in this phase (Phase 5)&lt;&#x2F;h3&gt;
+&lt;p&gt;We are adding a Dashboard as a process separate from the Gateway. The Gateway owns the Digital twin; the Dashboard is an observation consumer. The Gateway emits diagnostics and state-transition ledger rows. The Dashboard collects those, interprets those correctly and then displays appropriately.&lt;&#x2F;p&gt;
+&lt;p&gt;The Dashboard is built using #ratatui.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;final-arrangement&quot;&gt;Final arrangement&lt;&#x2F;h3&gt;
+&lt;p&gt;Five independently runnable binaries share the bus and observation path:&lt;&#x2F;p&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Process&lt;&#x2F;th&gt;&lt;th&gt;Role&lt;&#x2F;th&gt;&lt;&#x2F;tr&gt;&lt;&#x2F;thead&gt;&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;&lt;strong&gt;Gateway&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;Sole twin owner: install, CAN ingress, actuation, observation file tee,  live publication of what is happening in the Digital Twin&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;&lt;strong&gt;Dashboard&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;Observation-only TUI (driver &#x2F; engineer &#x2F; ledger tail)&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;&lt;strong&gt;Emulator&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;Finite or Ctrl+C CAN lifecycle; emits RPM &#x2F; lux &#x2F; rain; ensures that the Digital Twin receives &lt;code&gt;PowerOn&lt;&#x2F;code&gt; before any message it produces and &lt;code&gt;PowerOff&lt;&#x2F;code&gt; before it exits.&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;&lt;strong&gt;Headlamp &#x2F; Wiper actuators&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;CMD responses on &lt;code&gt;vcan0&lt;&#x2F;code&gt;&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;&#x2F;tbody&gt;&lt;&#x2F;table&gt;
+&lt;p&gt;Observation is a first-class product of the Gateway:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Files always:&lt;&#x2F;strong&gt; &lt;code&gt;ObservationTee&lt;&#x2F;code&gt; converts each twin record once and writes
+&lt;code&gt;manifest.json&lt;&#x2F;code&gt;, &lt;code&gt;diagnostic.jsonl&lt;&#x2F;code&gt;, and &lt;code&gt;ledger.jsonl&lt;&#x2F;code&gt; under &lt;code&gt;.&#x2F;observations&#x2F;&amp;lt;run-id&amp;gt;&#x2F;&lt;&#x2F;code&gt;. This is a step towards &lt;strong&gt;re-playability of events&lt;&#x2F;strong&gt; that  come in to the Digital Twin through the Gateway.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Transport is chosen at the start:&lt;&#x2F;strong&gt; : Because the Gateway and Dashboard have to agree on how do they communicate between themselves, while running the executable, we provide exactly &lt;strong&gt;one&lt;&#x2F;strong&gt; mode — &lt;code&gt;--uds PATH&lt;&#x2F;code&gt;, or
+&lt;code&gt;--zenoh --keyexpr EXPR&lt;&#x2F;code&gt;  (or Gateway &lt;code&gt;--no-live&lt;&#x2F;code&gt; for headless capture) for sharing the &#x27;live&#x27; payloads. These payloads share the same envelope shape as the &#x27;observations&#x27; files meant for replay (schema currently &lt;strong&gt;v3&lt;&#x2F;strong&gt;).&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Install gate:&lt;&#x2F;strong&gt; Gateway waits for a Dashboard (UDS accept or first Zenoh matching subscriber) before installing the twin, so the live consumer is attached when the session starts. In other words, a Gateway is launched and then, it waits for the Dashboard to connect; only &lt;em&gt;after&lt;&#x2F;em&gt; that a Digital Twin is created and &#x27;installed&#x27;.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The library pyramid is honoured by both the Gateway and Dashboard. That way, the  &lt;code&gt;common&lt;&#x2F;code&gt; &lt;em&gt;struct&lt;&#x2F;em&gt; s remain the source of truth in both of them; JSON mirrors them field-for-field. Presentation components (glyphs, colours, labels) stay on &lt;strong&gt;receiver-side&lt;&#x2F;strong&gt; , i.e., on the Dashboard.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;dashboard-view&quot;&gt;Dashboard view&lt;&#x2F;h3&gt;
+&lt;p&gt;┌ Session   ────────────────────────────────────────────────────────────┐
+│ Car: virtual-car-01  │  Twin T+: 0:00:42  │  Session start: …  │  FSM:   │ Driving  │  Last ledger: seq=104   │
+└──────────  ────────────────────────────────────────────────────────┘
+┌──────── Diagnostic (Driver) ──────┐┌──── State Transitions (Engineer) ────────────────┐
+│                                                                    ││                                                                                                  │
+│                                                                    ││ Current state: Driving                                                               │
+│ Notice: rain raining=true                             ││ Last event: UpdateAmbientLux(40)                                         │
+│                                                                    ││ Sub-assemblies:                                                                       │
+│ Speed:  ▓▓▓▓▓▓▓▓░░░░  72 km&#x2F;h        ││   Headlamp: On                                                                       │
+│                                                                    ││   Wiper: Running                                                                      │
+│ Visibility: ◼  low(tunnel&#x2F;dark)                      ││                                                                                                 │
+│                                                                    ││                                                                                                  │
+│ Weather: ☁ Raining   Wipers: ≋ moving   ││                                                                                                 │
+│                                                                    ││                                                                                                 │
+└──────────────────────────┘└──────────────── ──────────────────────┘
+┌──────────── Transition ledger ───────────────────────────────────────────┐
+│   [101] | UpdateRpm(2100) | Driving -&amp;gt; Driving                                                                                               │
+│   [102] | UpdateAmbientLux(40) | Driving -&amp;gt; Driving                                                                                        │
+│   [103] | RainsStarted | Driving -&amp;gt; Driving                                                                                                        │
+│ &amp;gt; [104] | UpdateRpm(2200) | Driving -&amp;gt; Driving                                                                                              │
+│   (up to ~20 rows; &lt;code&gt;&amp;gt;&lt;&#x2F;code&gt; marks newest)                                                                                                               │
+└──────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│ Connected to twin via uds:.&#x2F;tmp&#x2F;observation.sock | Keys: &#x27;q&#x27; quit                                                                   │
+└──────────────────────────────────────────────────────────────────┘&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;There are 4 panes. &lt;em&gt;Diagnostic&lt;&#x2F;em&gt; is meant for a regular driver of the car; &lt;em&gt;State Transitions&lt;&#x2F;em&gt; is meant for an observer from the operations team or an engineer.&lt;&#x2F;li&gt;
+&lt;li&gt;Topmost pane shows, amongst other things, in which state the Digital Twin&#x27;s FSM is currently in.&lt;&#x2F;li&gt;
+&lt;li&gt;Bottommost pane is a running commentary of the Transition Ledger (similar behaviour as &lt;code&gt;tail -f&lt;&#x2F;code&gt; of Linux&#x2F;Unix, but no up-scrolling button yet)&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;design-principles-we-keep&quot;&gt;Design principles we keep&lt;&#x2F;h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Emit facts, format at the edge.&lt;&#x2F;strong&gt; payloads  emitted by the Twin carries data &lt;strong&gt;only&lt;&#x2F;strong&gt;; glyphs are Dashboard&#x27;s preferences.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Wide streams, selective collectors.&lt;&#x2F;strong&gt; The twin emits rich diagnostics and ledger context as &lt;em&gt;continuous streams&lt;&#x2F;em&gt;; the dashboard&#x27;s panes filter what needs to be shown, where and when.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;CAN first for the vehicle bus.&lt;&#x2F;strong&gt; Zenoh in this phase is an &lt;strong&gt;observation&lt;&#x2F;strong&gt; carrier, not a bus replacement.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;Details, run commands, and file paths live in the &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_5&#x2F;blob&#x2F;main&#x2F;README.md&quot;&gt;&lt;strong&gt;Iteration 5 README&lt;&#x2F;strong&gt;&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;summary&quot;&gt;Summary&lt;&#x2F;h3&gt;
+&lt;p&gt;Stage V is an &lt;strong&gt;observation-and-presentation&lt;&#x2F;strong&gt; milestone: same twin, ROB, and assemblies as Stage IV, but the Gateway now treats diagnostics and ledger rows as first-class products. Files are always teed under &lt;code&gt;.&#x2F;observations&#x2F;&amp;lt;run-id&amp;gt;&#x2F;&lt;&#x2F;code&gt;; live delivery is optional and exclusive — UDS, Zenoh, or &lt;code&gt;--no-live&lt;&#x2F;code&gt;. A fifth process, the &lt;strong&gt;Dashboard&lt;&#x2F;strong&gt;, is observation-only: it never owns the twin, only consumes schema-v3 envelopes and formats them for driver and engineer panes.&lt;&#x2F;p&gt;
+&lt;p&gt;From the operator’s perspective: start actuators, Gateway, Dashboard, then emulator — watch FSM, weather, and ledger hop in a ratatui TUI while the run lands on disk. From the developer’s perspective: emit facts at the twin boundary; present at the edge; keep &lt;code&gt;common&lt;&#x2F;code&gt; as the shared source of truth.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;&lt;strong&gt;Where the code is&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;Repository: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_5&quot;&gt;&lt;strong&gt;&lt;code&gt;sdv_simulation_5&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt;&lt;&#x2F;a&gt; on GitHub — builds on &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_4&quot;&gt;&lt;strong&gt;&lt;code&gt;sdv_simulation_4&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt;&lt;&#x2F;a&gt;.&lt;&#x2F;li&gt;
+&lt;li&gt;Operational reference: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_5&#x2F;blob&#x2F;main&#x2F;README.md&quot;&gt;project &lt;strong&gt;README&lt;&#x2F;strong&gt;&lt;&#x2F;a&gt; (crate layout, how to run, UDS&#x2F;Zenoh flags, Dashboard surfaces, tests).&lt;&#x2F;li&gt;
+&lt;li&gt;Design decisions: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_5&#x2F;blob&#x2F;main&#x2F;docs&#x2F;DESIGN.md&quot;&gt;&lt;code&gt;docs&#x2F;DESIGN.md&lt;&#x2F;code&gt;&lt;&#x2F;a&gt;; roadmap and TBDs in &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_5&#x2F;blob&#x2F;main&#x2F;docs&#x2F;PLAN.md&quot;&gt;&lt;code&gt;docs&#x2F;PLAN.md&lt;&#x2F;code&gt;&lt;&#x2F;a&gt;.&lt;&#x2F;li&gt;
+&lt;li&gt;Historical notes: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_5&#x2F;tree&#x2F;main&#x2F;docs&#x2F;archive&quot;&gt;&lt;code&gt;docs&#x2F;archive&#x2F;&lt;&#x2F;code&gt;&lt;&#x2F;a&gt; (Iteration 4 twin&#x2F;ROB design retained for reference).&lt;&#x2F;li&gt;
+&lt;li&gt;This post is the &lt;strong&gt;narrative&lt;&#x2F;strong&gt;; the README on &lt;strong&gt;&lt;code&gt;main&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt; is the &lt;strong&gt;current truth&lt;&#x2F;strong&gt; for running and extending the prototype.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;&lt;strong&gt;Series:&lt;&#x2F;strong&gt; Prototyping a Software Defined Vehicle&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;← Previous&lt;&#x2F;strong&gt; &lt;a href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-4&#x2F;&quot;&gt;Stage IV&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;All posts in this series: &lt;a href=&quot;&#x2F;tags&#x2F;sdv-prototype&#x2F;&quot;&gt;sdv-prototype&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
     <entry xml:lang="en">
         <title>Digital Twin: Designing an Actor-Based SDV Prototype in Rust (Milestone 1)</title>
         <published>2026-06-26T00:00:00+00:00</published>
@@ -116,7 +236,7 @@
         <id>https://nsengupta.github.io/blog/prototype-software-defined-vehicle-4/</id>
         
         <content type="html" xml:base="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-4/">&lt;h3 id=&quot;preface&quot;&gt;Preface&lt;&#x2F;h3&gt;
-&lt;p&gt;The preceding &lt;a href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-3&#x2F;&quot;&gt;stage&lt;&#x2F;a&gt; gave us one actorified assembly — Headlamp as a &lt;strong&gt;twinlet&lt;&#x2F;strong&gt; under the Brain, quiescence over multiple FSM hops, and a ledger row for every decision. The demo still looked familiar: three processes on &lt;code&gt;vcan0&lt;&#x2F;code&gt;, lux-driven headlamp cycles, ACK&#x2F;NACK on the wire.&lt;&#x2F;p&gt;
+&lt;p&gt;The preceding &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-4&quot;&gt;stage&lt;&#x2F;a&gt; gave us one actorified assembly — Headlamp as a &lt;strong&gt;twinlet&lt;&#x2F;strong&gt; under the Brain, quiescence over multiple FSM hops, and a ledger row for every decision. The demo still looked familiar: three processes on &lt;code&gt;vcan0&lt;&#x2F;code&gt;, lux-driven headlamp cycles, ACK&#x2F;NACK on the wire.&lt;&#x2F;p&gt;
 &lt;p&gt;&lt;strong&gt;Stage III proved the twinlet pattern.&lt;&#x2F;strong&gt; Stage IV asks what happens when a &lt;strong&gt;second&lt;&#x2F;strong&gt; assembly joins — and when two zones can reply &lt;strong&gt;out of order&lt;&#x2F;strong&gt;. The answer is not “add another match arm and hope.” It is a reorder buffer, explicit boot&#x2F;shutdown states in the Brain FSM, and a wiper that runs on rain without an ACK round-trip. Same stdout philosophy: observable transitions, intent on the wire. &lt;strong&gt;Four processes&lt;&#x2F;strong&gt; now — emulator, gateway, headlamp actuator, wiper actuator — but the real story is inside the Brain’s coordination fabric.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h3 id=&quot;what-actually-changed-and-what-did-not&quot;&gt;What actually changed (and what did not)&lt;&#x2F;h3&gt;

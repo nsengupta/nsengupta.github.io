@@ -124,7 +124,7 @@ main h3 {
     </header>
     <div itemprop="articleBody">
       <h3 id="preface">Preface</h3>
-<p>The preceding <a href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-3/">stage</a> gave us one actorified assembly — Headlamp as a <strong>twinlet</strong> under the Brain, quiescence over multiple FSM hops, and a ledger row for every decision. The demo still looked familiar: three processes on <code>vcan0</code>, lux-driven headlamp cycles, ACK/NACK on the wire.</p>
+<p>The preceding <a rel="external" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-4">stage</a> gave us one actorified assembly — Headlamp as a <strong>twinlet</strong> under the Brain, quiescence over multiple FSM hops, and a ledger row for every decision. The demo still looked familiar: three processes on <code>vcan0</code>, lux-driven headlamp cycles, ACK/NACK on the wire.</p>
 <p><strong>Stage III proved the twinlet pattern.</strong> Stage IV asks what happens when a <strong>second</strong> assembly joins — and when two zones can reply <strong>out of order</strong>. The answer is not “add another match arm and hope.” It is a reorder buffer, explicit boot/shutdown states in the Brain FSM, and a wiper that runs on rain without an ACK round-trip. Same stdout philosophy: observable transitions, intent on the wire. <strong>Four processes</strong> now — emulator, gateway, headlamp actuator, wiper actuator — but the real story is inside the Brain’s coordination fabric.</p>
 <hr />
 <h3 id="what-actually-changed-and-what-did-not">What actually changed (and what did not)</h3>

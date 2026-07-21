@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  
+  
+  <meta name="description" content="Software Programming, reflections, soliloquys " />
+  
+  
+
+  <title>
+    
+    Prototyping a Software Defined Vehicle - Stage V
+    
+</title>
+
+  
+  <link rel="stylesheet" href="https://nsengupta.github.io/site.css">
+  
+
+  
+  
+</head>
+
+<body class="hack dark main container">
+  
+
+<style>
+body.container {
+    max-width: 68rem !important;
+}
+
+article p,
+article li,
+main p,
+main li {
+    font-size: 1.08rem !important;
+    line-height: 1.65 !important;
+}
+
+article h1,
+main h1 {
+    font-size: 1.8rem !important;
+    line-height: 1.3 !important;
+}
+
+article h2,
+main h2 {
+    font-size: 1.5rem !important;
+}
+
+article h3,
+main h3 {
+    font-size: 1.25rem !important;
+}
+
+/* Remove the gigantic ===== decoration */
+.hack h1:after {
+    content: "" !important;
+}
+
+/* Remove Markdown-style heading prefixes (#, ##, ###, etc.) */
+.hack h2:before,
+.hack h3:before,
+.hack h4:before,
+.hack h5:before,
+.hack h6:before {
+    content: "" !important;
+}
+</style>
+
+
+    
+        
+  
+  <header class="nav-header">
+    <nav itemscope itemtype="http://schema.org/SiteNavigationElement" class="navbar">
+      <div class="nav-links">
+        
+        <a itemprop="url"
+          class=""
+          href="/">
+          <span itemprop="name">Home</span></a>
+        
+        <a itemprop="url"
+          class=""
+          href="/blog">
+          <span itemprop="name">Technical Blog</span></a>
+        
+      </div>
+    </nav>
+    
+
+  </header>
+  
+  
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">Prototyping a Software Defined Vehicle - Stage V</h1>
+        <span class="muted">
+    <svg class="icon i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>6 minute read</span>
+    <svg class="icon i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    Published: 2026-07-20
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <h3 id="preface">Preface</h3>
+<p>Note: A capstone version 1.0 is blogged <a rel="external" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-milestone-1/">here</a>, as a <em>summary</em> of all the earlier phases till Phase 4.</p>
+<p>The preceding <a rel="external" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-4">phase</a> gave us an arrangement where, we had</p>
+<ul>
+<li>Two Assemblies (Headlamp and Wiper), and actuators for each, picking ('switch on')and pushing CAN messages on the Bus ('ack' or 'nack')</li>
+<li>Quiescence over multiple FSM hops</li>
+<li>Ledger row produced / emitted for every FSM transition</li>
+<li>The Digital Twin (with its <em>Brain</em> actor) was owned by the Gateway application (run from the command line)</li>
+<li>An emulator which could generate messages representing real Vehicle's environment, <em>ad infinitum</em> , but without any start / stop indicators</li>
+</ul>
+<p>To run the entire prototype suite, four #rustlang programs are executed from the command-line:</p>
+<ol>
+<li>Gateway</li>
+<li>Emulator</li>
+<li>Headlamp Actuator</li>
+<li>Wiper Actuator</li>
+</ol>
+<p>Of course, the CAN Bus has to run on the Linux OS.</p>
+<h3 id="what-are-we-adding-in-this-phase-phase-5">What are we adding in this phase (Phase 5)</h3>
+<p>We are adding a Dashboard as a process separate from the Gateway. The Gateway owns the Digital twin; the Dashboard is an observation consumer. The Gateway emits diagnostics and state-transition ledger rows. The Dashboard collects those, interprets those correctly and then displays appropriately.</p>
+<p>The Dashboard is built using #ratatui.</p>
+<hr />
+<h3 id="final-arrangement">Final arrangement</h3>
+<p>Five independently runnable binaries share the bus and observation path:</p>
+<table><thead><tr><th>Process</th><th>Role</th></tr></thead><tbody>
+<tr><td><strong>Gateway</strong></td><td>Sole twin owner: install, CAN ingress, actuation, observation file tee,  live publication of what is happening in the Digital Twin</td></tr>
+<tr><td><strong>Dashboard</strong></td><td>Observation-only TUI (driver / engineer / ledger tail)</td></tr>
+<tr><td><strong>Emulator</strong></td><td>Finite or Ctrl+C CAN lifecycle; emits RPM / lux / rain; ensures that the Digital Twin receives <code>PowerOn</code> before any message it produces and <code>PowerOff</code> before it exits.</td></tr>
+<tr><td><strong>Headlamp / Wiper actuators</strong></td><td>CMD responses on <code>vcan0</code></td></tr>
+</tbody></table>
+<p>Observation is a first-class product of the Gateway:</p>
+<ul>
+<li><strong>Files always:</strong> <code>ObservationTee</code> converts each twin record once and writes
+<code>manifest.json</code>, <code>diagnostic.jsonl</code>, and <code>ledger.jsonl</code> under <code>./observations/&lt;run-id&gt;/</code>. This is a step towards <strong>re-playability of events</strong> that  come in to the Digital Twin through the Gateway.</li>
+<li><strong>Transport is chosen at the start:</strong> : Because the Gateway and Dashboard have to agree on how do they communicate between themselves, while running the executable, we provide exactly <strong>one</strong> mode — <code>--uds PATH</code>, or
+<code>--zenoh --keyexpr EXPR</code>  (or Gateway <code>--no-live</code> for headless capture) for sharing the 'live' payloads. These payloads share the same envelope shape as the 'observations' files meant for replay (schema currently <strong>v3</strong>).</li>
+<li><strong>Install gate:</strong> Gateway waits for a Dashboard (UDS accept or first Zenoh matching subscriber) before installing the twin, so the live consumer is attached when the session starts. In other words, a Gateway is launched and then, it waits for the Dashboard to connect; only <em>after</em> that a Digital Twin is created and 'installed'.</li>
+</ul>
+<p>The library pyramid is honoured by both the Gateway and Dashboard. That way, the  <code>common</code> <em>struct</em> s remain the source of truth in both of them; JSON mirrors them field-for-field. Presentation components (glyphs, colours, labels) stay on <strong>receiver-side</strong> , i.e., on the Dashboard.</p>
+<h3 id="dashboard-view">Dashboard view</h3>
+<p>┌ Session   ────────────────────────────────────────────────────────────┐
+│ Car: virtual-car-01  │  Twin T+: 0:00:42  │  Session start: …  │  FSM:   │ Driving  │  Last ledger: seq=104   │
+└──────────  ────────────────────────────────────────────────────────┘
+┌──────── Diagnostic (Driver) ──────┐┌──── State Transitions (Engineer) ────────────────┐
+│                                                                    ││                                                                                                  │
+│                                                                    ││ Current state: Driving                                                               │
+│ Notice: rain raining=true                             ││ Last event: UpdateAmbientLux(40)                                         │
+│                                                                    ││ Sub-assemblies:                                                                       │
+│ Speed:  ▓▓▓▓▓▓▓▓░░░░  72 km/h        ││   Headlamp: On                                                                       │
+│                                                                    ││   Wiper: Running                                                                      │
+│ Visibility: ◼  low(tunnel/dark)                      ││                                                                                                 │
+│                                                                    ││                                                                                                  │
+│ Weather: ☁ Raining   Wipers: ≋ moving   ││                                                                                                 │
+│                                                                    ││                                                                                                 │
+└──────────────────────────┘└──────────────── ──────────────────────┘
+┌──────────── Transition ledger ───────────────────────────────────────────┐
+│   [101] | UpdateRpm(2100) | Driving -&gt; Driving                                                                                               │
+│   [102] | UpdateAmbientLux(40) | Driving -&gt; Driving                                                                                        │
+│   [103] | RainsStarted | Driving -&gt; Driving                                                                                                        │
+│ &gt; [104] | UpdateRpm(2200) | Driving -&gt; Driving                                                                                              │
+│   (up to ~20 rows; <code>&gt;</code> marks newest)                                                                                                               │
+└──────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│ Connected to twin via uds:./tmp/observation.sock | Keys: 'q' quit                                                                   │
+└──────────────────────────────────────────────────────────────────┘</p>
+<ul>
+<li>There are 4 panes. <em>Diagnostic</em> is meant for a regular driver of the car; <em>State Transitions</em> is meant for an observer from the operations team or an engineer.</li>
+<li>Topmost pane shows, amongst other things, in which state the Digital Twin's FSM is currently in.</li>
+<li>Bottommost pane is a running commentary of the Transition Ledger (similar behaviour as <code>tail -f</code> of Linux/Unix, but no up-scrolling button yet)</li>
+</ul>
+<hr />
+<h3 id="design-principles-we-keep">Design principles we keep</h3>
+<ul>
+<li>
+<p><strong>Emit facts, format at the edge.</strong> payloads  emitted by the Twin carries data <strong>only</strong>; glyphs are Dashboard's preferences.</p>
+</li>
+<li>
+<p><strong>Wide streams, selective collectors.</strong> The twin emits rich diagnostics and ledger context as <em>continuous streams</em>; the dashboard's panes filter what needs to be shown, where and when.</p>
+</li>
+<li>
+<p><strong>CAN first for the vehicle bus.</strong> Zenoh in this phase is an <strong>observation</strong> carrier, not a bus replacement.</p>
+</li>
+</ul>
+<p>Details, run commands, and file paths live in the <a rel="external" href="https://github.com/nsengupta/sdv_simulation_5/blob/main/README.md"><strong>Iteration 5 README</strong></a>.</p>
+<hr />
+<h3 id="summary">Summary</h3>
+<p>Stage V is an <strong>observation-and-presentation</strong> milestone: same twin, ROB, and assemblies as Stage IV, but the Gateway now treats diagnostics and ledger rows as first-class products. Files are always teed under <code>./observations/&lt;run-id&gt;/</code>; live delivery is optional and exclusive — UDS, Zenoh, or <code>--no-live</code>. A fifth process, the <strong>Dashboard</strong>, is observation-only: it never owns the twin, only consumes schema-v3 envelopes and formats them for driver and engineer panes.</p>
+<p>From the operator’s perspective: start actuators, Gateway, Dashboard, then emulator — watch FSM, weather, and ledger hop in a ratatui TUI while the run lands on disk. From the developer’s perspective: emit facts at the twin boundary; present at the edge; keep <code>common</code> as the shared source of truth.</p>
+<hr />
+<p><strong>Where the code is</strong></p>
+<ul>
+<li>Repository: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_5"><strong><code>sdv_simulation_5</code></strong></a> on GitHub — builds on <a rel="external" href="https://github.com/nsengupta/sdv_simulation_4"><strong><code>sdv_simulation_4</code></strong></a>.</li>
+<li>Operational reference: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_5/blob/main/README.md">project <strong>README</strong></a> (crate layout, how to run, UDS/Zenoh flags, Dashboard surfaces, tests).</li>
+<li>Design decisions: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_5/blob/main/docs/DESIGN.md"><code>docs/DESIGN.md</code></a>; roadmap and TBDs in <a rel="external" href="https://github.com/nsengupta/sdv_simulation_5/blob/main/docs/PLAN.md"><code>docs/PLAN.md</code></a>.</li>
+<li>Historical notes: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_5/tree/main/docs/archive"><code>docs/archive/</code></a> (Iteration 4 twin/ROB design retained for reference).</li>
+<li>This post is the <strong>narrative</strong>; the README on <strong><code>main</code></strong> is the <strong>current truth</strong> for running and extending the prototype.</li>
+</ul>
+<hr />
+<p><strong>Series:</strong> Prototyping a Software Defined Vehicle</p>
+<p><strong>← Previous</strong> <a href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-4/">Stage IV</a></p>
+<p>All posts in this series: <a href="/tags/sdv-prototype/">sdv-prototype</a></p>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                
+                    
+                    tagged
+                    
+                        <a href="https://nsengupta.github.io/tags/sdv-prototype/">sdv-prototype</a>
+                        
+                    
+                
+            </p>
+            
+            
+        </footer>
+    
+</article>
+
+
+
+
+
+  <!-- optional scripts -->
+  
+  
+
+  
+
+  
+
+  
+</body>
+
+</html>
