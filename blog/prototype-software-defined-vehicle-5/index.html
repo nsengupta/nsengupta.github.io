@@ -112,14 +112,14 @@ main h3 {
         <circle cx="16" cy="16" r="14"/>
         <path d="M16 8 L16 16 20 20"/>
     </svg>
-    <span>6 minute read</span>
+    <span>5 minute read</span>
     <svg class="icon i-edit" viewBox="0 0 32 32"
          width="16" height="16" fill="none" stroke="currentcolor"
          stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
         <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
     </svg>
 
-    Published: 2026-07-20
+    Published: 2026-07-21
 </span>
     </header>
     <div itemprop="articleBody">
@@ -142,7 +142,8 @@ main h3 {
 </ol>
 <p>Of course, the CAN Bus has to run on the Linux OS.</p>
 <h3 id="what-are-we-adding-in-this-phase-phase-5">What are we adding in this phase (Phase 5)</h3>
-<p>We are adding a Dashboard as a process separate from the Gateway. The Gateway owns the Digital twin; the Dashboard is an observation consumer. The Gateway emits diagnostics and state-transition ledger rows. The Dashboard collects those, interprets those correctly and then displays appropriately.</p>
+<p>We are adding a Dashboard as a process separate from the Gateway. The Gateway owns the Digital twin; the Dashboard is an observation consumer. The Gateway emits diagnostics and state-transition ledger rows. The Dashboard collects those, interprets those as appropriate and then displays appropriately.</p>
+<p>The emitted records are transported in JSONL form and use either a Unix Domain Socket or Zenoh in peer-mode.</p>
 <p>The Dashboard is built using #ratatui.</p>
 <hr />
 <h3 id="final-arrangement">Final arrangement</h3>
@@ -163,33 +164,31 @@ main h3 {
 </ul>
 <p>The library pyramid is honoured by both the Gateway and Dashboard. That way, the  <code>common</code> <em>struct</em> s remain the source of truth in both of them; JSON mirrors them field-for-field. Presentation components (glyphs, colours, labels) stay on <strong>receiver-side</strong> , i.e., on the Dashboard.</p>
 <h3 id="dashboard-view">Dashboard view</h3>
-<p>┌ Session   ────────────────────────────────────────────────────────────┐
-│ Car: virtual-car-01  │  Twin T+: 0:00:42  │  Session start: …  │  FSM:   │ Driving  │  Last ledger: seq=104   │
-└──────────  ────────────────────────────────────────────────────────┘
-┌──────── Diagnostic (Driver) ──────┐┌──── State Transitions (Engineer) ────────────────┐
-│                                                                    ││                                                                                                  │
-│                                                                    ││ Current state: Driving                                                               │
-│ Notice: rain raining=true                             ││ Last event: UpdateAmbientLux(40)                                         │
-│                                                                    ││ Sub-assemblies:                                                                       │
-│ Speed:  ▓▓▓▓▓▓▓▓░░░░  72 km/h        ││   Headlamp: On                                                                       │
-│                                                                    ││   Wiper: Running                                                                      │
-│ Visibility: ◼  low(tunnel/dark)                      ││                                                                                                 │
-│                                                                    ││                                                                                                  │
-│ Weather: ☁ Raining   Wipers: ≋ moving   ││                                                                                                 │
-│                                                                    ││                                                                                                 │
-└──────────────────────────┘└──────────────── ──────────────────────┘
-┌──────────── Transition ledger ───────────────────────────────────────────┐
-│   [101] | UpdateRpm(2100) | Driving -&gt; Driving                                                                                               │
-│   [102] | UpdateAmbientLux(40) | Driving -&gt; Driving                                                                                        │
-│   [103] | RainsStarted | Driving -&gt; Driving                                                                                                        │
-│ &gt; [104] | UpdateRpm(2200) | Driving -&gt; Driving                                                                                              │
-│   (up to ~20 rows; <code>&gt;</code> marks newest)                                                                                                               │
-└──────────────────────────────────────────────────────────────────┘
-┌──────────────────────────────────────────────────────────────────┐
-│ Connected to twin via uds:./tmp/observation.sock | Keys: 'q' quit                                                                   │
-└──────────────────────────────────────────────────────────────────┘</p>
+<p>Layout sketch of the ratatui Dashboard (five panes):</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>┌─ Session ────────────────────────────────────────────────────────────────────┐</span></span>
+<span class="giallo-l"><span>│ Car: virtual-car-01 │ Twin T+: 0:00:42 │ FSM: Driving │ seq=104              │</span></span>
+<span class="giallo-l"><span>└──────────────────────────────────────────────────────────────────────────────┘</span></span>
+<span class="giallo-l"><span>┌─ Diagnostic (Driver) ────────────────┐┌─ State Transitions (Engineer) ───────┐</span></span>
+<span class="giallo-l"><span>│                                      ││ Current state: Driving               │</span></span>
+<span class="giallo-l"><span>│ Notice: rain raining=true            ││ Last event: UpdateAmbientLux(40)     │</span></span>
+<span class="giallo-l"><span>│                                      ││ Sub-assemblies:                      │</span></span>
+<span class="giallo-l"><span>│ Speed:  ########....  72 km/h        ││   Headlamp: On                       │</span></span>
+<span class="giallo-l"><span>│ Visibility: # low (tunnel/dark)      ││   Wiper: Running                     │</span></span>
+<span class="giallo-l"><span>│ Weather: ~ Raining                   ││                                      │</span></span>
+<span class="giallo-l"><span>│ Wipers:  ~~ moving                   ││                                      │</span></span>
+<span class="giallo-l"><span>└──────────────────────────────────────┘└──────────────────────────────────────┘</span></span>
+<span class="giallo-l"><span>┌─ Transition ledger ──────────────────────────────────────────────────────────┐</span></span>
+<span class="giallo-l"><span>│   [101] | UpdateRpm(2100)      | Driving -&gt; Driving                          │</span></span>
+<span class="giallo-l"><span>│   [102] | UpdateAmbientLux(40) | Driving -&gt; Driving                          │</span></span>
+<span class="giallo-l"><span>│   [103] | RainsStarted         | Driving -&gt; Driving                          │</span></span>
+<span class="giallo-l"><span>│ &gt; [104] | UpdateRpm(2200)      | Driving -&gt; Driving                          │</span></span>
+<span class="giallo-l"><span>│   (up to ~20 rows; &#39;&gt;&#39; marks newest)                                         │</span></span>
+<span class="giallo-l"><span>└──────────────────────────────────────────────────────────────────────────────┘</span></span>
+<span class="giallo-l"><span>┌──────────────────────────────────────────────────────────────────────────────┐</span></span>
+<span class="giallo-l"><span>│ Connected via uds:./tmp/observation.sock  |  Keys: q quit                    │</span></span>
+<span class="giallo-l"><span>└──────────────────────────────────────────────────────────────────────────────┘</span></span></code></pre>
 <ul>
-<li>There are 4 panes. <em>Diagnostic</em> is meant for a regular driver of the car; <em>State Transitions</em> is meant for an observer from the operations team or an engineer.</li>
+<li>There are 5 panes. <em>Diagnostic</em> is meant for a regular driver of the car; <em>State Transitions</em> is meant for an observer from the operations team or an engineer.</li>
 <li>Topmost pane shows, amongst other things, in which state the Digital Twin's FSM is currently in.</li>
 <li>Bottommost pane is a running commentary of the Transition Ledger (similar behaviour as <code>tail -f</code> of Linux/Unix, but no up-scrolling button yet)</li>
 </ul>
@@ -215,7 +214,7 @@ main h3 {
 <p><strong>Where the code is</strong></p>
 <ul>
 <li>Repository: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_5"><strong><code>sdv_simulation_5</code></strong></a> on GitHub — builds on <a rel="external" href="https://github.com/nsengupta/sdv_simulation_4"><strong><code>sdv_simulation_4</code></strong></a>.</li>
-<li>Operational reference: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_5/blob/main/README.md">project <strong>README</strong></a> (crate layout, how to run, UDS/Zenoh flags, Dashboard surfaces, tests).</li>
+<li>Operational reference: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_5">project <strong>README</strong></a> (crate layout, how to run, UDS/Zenoh flags, Dashboard surfaces, tests).</li>
 <li>Design decisions: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_5/blob/main/docs/DESIGN.md"><code>docs/DESIGN.md</code></a>; roadmap and TBDs in <a rel="external" href="https://github.com/nsengupta/sdv_simulation_5/blob/main/docs/PLAN.md"><code>docs/PLAN.md</code></a>.</li>
 <li>Historical notes: <a rel="external" href="https://github.com/nsengupta/sdv_simulation_5/tree/main/docs/archive"><code>docs/archive/</code></a> (Iteration 4 twin/ROB design retained for reference).</li>
 <li>This post is the <strong>narrative</strong>; the README on <strong><code>main</code></strong> is the <strong>current truth</strong> for running and extending the prototype.</li>
