@@ -123,8 +123,25 @@ main h3 {
 </span>
     </header>
     <div itemprop="articleBody">
-      <h3 id="preface">Preface</h3>
-<p>Note: A capstone version 1.0 is blogged <a rel="external" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-milestone-1/">here</a>, as a <em>summary</em> of all the earlier phases till Phase 4.</p>
+      <h3 id="at-a-glance">At a glance</h3>
+<p>Stage V separates <strong>control</strong> from <strong>observation</strong>: the Emulator drives the vehicle bus; the Gateway alone owns a <strong>Digital Twin</strong> (Brain, assembly actors, ROB, FSM, Observation Tee); a Dashboard watches live over UDS or Zenoh; every decision is also teed to disk as JSONL for later replay.</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>[ Emulator ]</span></span>
+<span class="giallo-l"><span>     │ (vcan0)</span></span>
+<span class="giallo-l"><span>     v</span></span>
+<span class="giallo-l"><span>┌─ Gateway ──────────────────────┐</span></span>
+<span class="giallo-l"><span>│ ┌─ Digital Twin ─────────────┐ │</span></span>
+<span class="giallo-l"><span>│ │ Brain Actor                │ │</span></span>
+<span class="giallo-l"><span>│ │ Assembly actors            │ │ ──(UDS / Zenoh)──&gt; [ Dashboard (TUI) ]</span></span>
+<span class="giallo-l"><span>│ │ ROB · FSM                  │ │</span></span>
+<span class="giallo-l"><span>│ │ Observation Tee            │ │</span></span>
+<span class="giallo-l"><span>│ └──────────────┬─────────────┘ │</span></span>
+<span class="giallo-l"><span>└────────────────┼───────────────┘</span></span>
+<span class="giallo-l"><span>                 │</span></span>
+<span class="giallo-l"><span>                 v</span></span>
+<span class="giallo-l"><span>       [ Disk: JSONL Logs ]</span></span></code></pre>
+<hr />
+<h3 id="preface">Preface</h3>
+<p>Note: A capstone version 1.0 is blogged <a rel="external" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-milestone-1/">here</a>, as a <em>summary</em> of the phases through Stage V.</p>
 <p>The preceding <a rel="external" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-4">phase</a> gave us an arrangement where, we had</p>
 <ul>
 <li>Two Assemblies (Headlamp and Wiper), and actuators for each, picking ('switch on')and pushing CAN messages on the Bus ('ack' or 'nack')</li>
