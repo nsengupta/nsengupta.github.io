@@ -5,12 +5,12 @@
     <link rel="self" type="application/atom+xml" href="https://nsengupta.github.io/tags/sdv-prototype/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://nsengupta.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2026-07-22T00:00:00+00:00</updated>
+    <updated>2026-07-24T00:00:00+00:00</updated>
     <id>https://nsengupta.github.io/tags/sdv-prototype/atom.xml</id>
     <entry xml:lang="en">
         <title>Digital Twin: Designing an Actor-Based SDV Prototype in Rust (Milestone 1)</title>
-        <published>2026-07-22T00:00:00+00:00</published>
-        <updated>2026-07-22T00:00:00+00:00</updated>
+        <published>2026-07-24T00:00:00+00:00</published>
+        <updated>2026-07-24T00:00:00+00:00</updated>
         
         <author>
           <name>
