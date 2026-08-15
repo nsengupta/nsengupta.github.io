@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  
+  
+  <meta name="description" content="Software Programming, reflections, soliloquys " />
+  
+  
+
+  <title>
+    
+    Quint: those &#x27;Aha&#x27; moments that help solidify what I already know
+    
+</title>
+
+  
+  <link rel="stylesheet" href="https://nsengupta.github.io/site.css">
+  
+
+  
+  
+</head>
+
+<body class="hack dark main container">
+  
+
+<style>
+body.container {
+    max-width: 68rem !important;
+}
+
+article p,
+article li,
+main p,
+main li {
+    font-size: 1.08rem !important;
+    line-height: 1.65 !important;
+}
+
+article h1,
+main h1 {
+    font-size: 1.8rem !important;
+    line-height: 1.3 !important;
+}
+
+article h2,
+main h2 {
+    font-size: 1.5rem !important;
+}
+
+article h3,
+main h3 {
+    font-size: 1.25rem !important;
+}
+
+/* Remove the gigantic ===== decoration */
+.hack h1:after {
+    content: "" !important;
+}
+
+/* Remove Markdown-style heading prefixes (#, ##, ###, etc.) */
+.hack h2:before,
+.hack h3:before,
+.hack h4:before,
+.hack h5:before,
+.hack h6:before {
+    content: "" !important;
+}
+</style>
+
+
+    
+        
+  
+  <header class="nav-header">
+    <nav itemscope itemtype="http://schema.org/SiteNavigationElement" class="navbar">
+      <div class="nav-links">
+        
+        <a itemprop="url"
+          class=""
+          href="/">
+          <span itemprop="name">Home</span></a>
+        
+        <a itemprop="url"
+          class=""
+          href="/blog">
+          <span itemprop="name">Technical Blog</span></a>
+        
+      </div>
+    </nav>
+    
+
+  </header>
+  
+  
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">Quint: those &#x27;Aha&#x27; moments that help solidify what I already know</h1>
+        <span class="muted">
+    <svg class="icon i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>5 minute read</span>
+    <svg class="icon i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    Published: 2026-08-15
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <h2 id="preface">Preface</h2>
+<p>“What does an experienced software engineer discover when s/he uses an executable specification language to rigorously revisit ideas s/he already knows?”</p>
+<p>I've been modeling software systems using <strong>Finite State Machine-based</strong> approach for many years. 'State transition' is hardly a new territory for me.</p>
+<p>My interest in Quint isn't academic. I've been working on an actor-based Digital Twin, where state, events, asynchronous messages and ordering are practical engineering concerns. Quint gives me a way to examine those concerns at a higher level of rigor.</p>
+<p>Now, the interesting part hasn't been learning about 'state'-s or 'transition'-s; it has been discovering the assumptions hiding between them - the <strong>Aha</strong> moments 😃. I am becoming familiar describing 'state'-s and 'transition-s', into executable specifications and subjecting them to systematic exploration.</p>
+<hr />
+<p>Important ✋ : This is <strong>not</strong> a Quint tutorial. I have been following their tutorial <a rel="external" href="https://quint.sh/docs/getting-started">here</a>, all along. The specifications live in <a rel="external" href="https://github.com/nsengupta/quint-specification-journey"><code>quint-specification-journey</code></a>.</p>
+<hr />
+<h2 id="the-aha-moments-for-me">The <em>Aha</em> moments for me</h2>
+<h3 id="aha-moment-1-i-have-known-state-transitions-for-many-years-quint-makes-me-pinpoint-exactly-which-transitions-are-permissible">Aha moment #1 — I have known state transitions for many years. Quint makes me pinpoint exactly which transitions are permissible</h3>
+<p>I have worked with state-machine models for years; so NFAs, DFAs, states, transitions, guard-conditions and exit handlers, were familiar territory. What is different here, is having to express the transition precisely enough for a model checker to explore it.</p>
+<p>In a Quint specification, the state is not an abstract notion sitting behind the model. It is the collection of the current values of the state variables. An action examines those values and, through assignments to primed variables (suffixed with <strong>'</strong>), specifies the values in the next state.</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>traffic_light&#39; = // The next transition begins with the value assigned, here.</span></span>
+<span class="giallo-l"><span>        if (traffic_light == RED) { GREEN }</span></span>
+<span class="giallo-l"><span>        else if (traffic_light == GREEN) { YELLOW }</span></span>
+<span class="giallo-l"><span>        else { RED }</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>There is no room here for “what I intend the traffic light to do.”. The specification has to say exactly which next state this action permits from the current state.</p>
+<p>Quint hasn't taught me what a 'state transition' is (I know that quite well); but it makes me pinpoint exactly what a transition permits.</p>
+<p>Code: <a rel="external" href="https://github.com/nsengupta/quint-specification-journey/blob/main/traffic_light.qnt"><code>traffic_light.qnt</code></a>.</p>
+<h3 id="aha-moment-2-i-am-quite-familiar-with-transitions-quint-reminds-me-that-if-i-don-t-expressly-forbid-it-i-permit-a-transition">Aha moment #2: I am quite familiar with transitions. Quint reminds me that if I don't expressly forbid it, I permit a transition.</h3>
+<p>Guard conditions always evaluate to a true/false value. They determine whether a transition is enabled from the current state. If the guard is false, that transition is not part of the possible next transitions from that state.</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>action openDoor = .. {</span></span>
+<span class="giallo-l"><span>          ..</span></span>
+<span class="giallo-l"><span>          physical_door.door_access == Closed and physical_door.lock_condition == Unlocked,</span></span>
+<span class="giallo-l"><span>	      ..</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>My intuition says that opening a locked door is obviously invalid. Quint doesn't share that intuition. If I don't constrain the transition, it remains a possible behaviour of the model.</p>
+<p>The idea of a guard isn't new to me. What Quint exposes more deeply is how completely the guard has to capture the behaviour I want to permit.</p>
+<p>Code: <a rel="external" href="https://github.com/nsengupta/quint-specification-journey/blob/main/door_and_lock.qnt"><code>door_and_lock.qnt</code></a>.</p>
+<h3 id="aha-moment-3-an-invariant-pins-me-down-think-hard-what-must-always-be-true">Aha moment #3: An invariant pins me down - "think hard; what must <strong>always</strong> be true"?</h3>
+<p>I already know invariants as a modelling and verification concept. What Quint exposes more deeply is that <strong>formulating the invariant is itself part of understanding the behaviour</strong>.</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>val door_is_stable =</span></span>
+<span class="giallo-l"><span>    not (</span></span>
+<span class="giallo-l"><span>        physical_door.door_access == Open and</span></span>
+<span class="giallo-l"><span>        physical_door.lock_condition == Locked</span></span>
+<span class="giallo-l"><span>    )</span></span></code></pre>
+<p>The invariant is simple, even obvious. But stating it explicitly forces me to articulate what I mean by a valid state — and, more importantly — what must never become true.</p>
+<p>When I run quint, I mention the invariant:</p>
+<p><code>quint run door_and_lock.qnt --invariant door_is_stable</code></p>
+<p>Quint explores the states and transitions and informs me if the invariant fails.</p>
+<p>Importantly, the model checker can tell me whether my model satisfies the invariant I give it; it cannot tell me whether I captured the property that actually matters. This is a key observation.</p>
+<h3 id="aha-moment-4-quint-makes-the-unchanged-state-explicit">Aha moment #4: Quint makes the “unchanged” state explicit.</h3>
+<p>I know that an action may change some parts of state while leaving others untouched. While programming in my favourite language, that can remain implicit. Quint makes me account for it explicitly.</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>action deposit = </span></span>
+<span class="giallo-l"><span>       nondet to_account = ACCOUNTS.oneOf()</span></span>
+<span class="giallo-l"><span>       nondet d = 1.to(50).oneOf()</span></span>
+<span class="giallo-l"><span>       all {</span></span>
+<span class="giallo-l"><span>	    balances&#39; = balances.set(to_account, balances.get(to_account) + d) ,</span></span>
+<span class="giallo-l"><span>	    total_deposit_amount&#39; = total_deposit_amount + d,</span></span>
+<span class="giallo-l"><span>	    total_withdrawal_amount&#39; = total_withdrawal_amount, // &lt;-- No change; yet explicit</span></span>
+<span class="giallo-l"><span>	    total_money_supply&#39; = total_money_supply // &lt;-- No change; yet explicit</span></span>
+<span class="giallo-l"><span>	   }</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>I have to state explicitly that <code>total_withdrawal_amount</code> and <code>total_money_supply</code> remain unchanged during <code>deposit</code>.</p>
+<p>Code: <a rel="external" href="https://github.com/nsengupta/quint-specification-journey/blob/main/bank_transactions.qnt"><code>bank_transactions.qnt</code></a>.</p>
+<h3 id="aha-moment-5-non-determinism-lets-me-leave-the-environment-s-choices-unspecified">Aha moment #5: Non-determinism lets me leave the environment's choices unspecified.</h3>
+<p>I already know that asynchronous systems involve choices I don't control. What Quint exposes more deeply is that I canmake that <em>nondeterminism</em> explicit in the specification.</p>
+<p>Which transition happens next?</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>action step = any {</span></span>
+<span class="giallo-l"><span>    sendMessage,</span></span>
+<span class="giallo-l"><span>    deliverMessage</span></span>
+<span class="giallo-l"><span>}</span></span></code></pre>
+<p>And, when <code>deliverMessage</code> is chosen, which message is delivered?</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>nondet m = in_transit.oneOf()</span></span></code></pre>
+<p>Asynchrony gives the environment choices at more than one level. Which transition happens next? And, if delivery happens, which message is involved? <code>any</code> and <code>nondet</code> let me leave those choices unspecified rather than building a convenient execution order into the model.</p>
+<p>Aha #2 said: <strong>If I don't forbid it, I have permitted it.</strong> Here I am deliberately leaving some choices unconstrained because they belong to the environment, not to my system.</p>
+<p>Code: <a rel="external" href="https://github.com/nsengupta/quint-specification-journey/blob/main/send_and_deliver.qnt"><code>send_and_deliver.qnt</code></a>.</p>
+<h2 id="endnote">Endnote</h2>
+<p>Quint is a model checker. A model checker can establish properties of the specification. It cannot determine whether the specification captured the actual requirements.</p>
+<p><strong>That responsibility remains mine.</strong></p>
+<p>And, the journey continues, anticipating more such <em>Aha</em> moments!</p>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                
+                    
+                    tagged
+                    
+                        <a href="https://nsengupta.github.io/tags/quint/">Quint</a>
+                        
+                            
+                                
+                                    and
+                                
+                            
+                        
+                    
+                        <a href="https://nsengupta.github.io/tags/formal-specification/">Formal Specification</a>
+                        
+                            
+                        
+                    
+                
+            </p>
+            
+            
+        </footer>
+    
+</article>
+
+
+
+
+
+  <!-- optional scripts -->
+  
+  
+
+  
+
+  
+
+  
+</body>
+
+</html>

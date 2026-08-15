@@ -17,6 +17,9 @@
         <loc>https://nsengupta.github.io/blog/page/2/</loc>
     </url>
     <url>
+        <loc>https://nsengupta.github.io/blog/page/3/</loc>
+    </url>
+    <url>
         <loc>https://nsengupta.github.io/blog/product-owners-technical-debt-matters/</loc>
         <lastmod>2026-07-01</lastmod>
     </url>
@@ -49,6 +52,10 @@
         <lastmod>2026-07-24</lastmod>
     </url>
     <url>
+        <loc>https://nsengupta.github.io/blog/quint-specification-jurney/</loc>
+        <lastmod>2026-08-15</lastmod>
+    </url>
+    <url>
         <loc>https://nsengupta.github.io/blog/why-explore-software-defined-vehicle/</loc>
         <lastmod>2026-05-06</lastmod>
     </url>
@@ -59,13 +66,22 @@
         <loc>https://nsengupta.github.io/page/2/</loc>
     </url>
     <url>
+        <loc>https://nsengupta.github.io/page/3/</loc>
+    </url>
+    <url>
         <loc>https://nsengupta.github.io/tags/</loc>
     </url>
     <url>
         <loc>https://nsengupta.github.io/tags/architecture/</loc>
     </url>
     <url>
+        <loc>https://nsengupta.github.io/tags/formal-specification/</loc>
+    </url>
+    <url>
         <loc>https://nsengupta.github.io/tags/product-management/</loc>
+    </url>
+    <url>
+        <loc>https://nsengupta.github.io/tags/quint/</loc>
     </url>
     <url>
         <loc>https://nsengupta.github.io/tags/sdv-prototype/</loc>

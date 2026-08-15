@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Nirmalya Sengupta - Formal Specification</title>
+    <subtitle>Software Programming, reflections, soliloquys </subtitle>
+    <link rel="self" type="application/atom+xml" href="https://nsengupta.github.io/tags/formal-specification/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://nsengupta.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2026-08-15T00:00:00+00:00</updated>
+    <id>https://nsengupta.github.io/tags/formal-specification/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Quint: those &#x27;Aha&#x27; moments that help solidify what I already know</title>
+        <published>2026-08-15T00:00:00+00:00</published>
+        <updated>2026-08-15T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/quint-specification-jurney/"/>
+        <id>https://nsengupta.github.io/blog/quint-specification-jurney/</id>
+        
+        <content type="html" xml:base="https://nsengupta.github.io/blog/quint-specification-jurney/">&lt;h2 id=&quot;preface&quot;&gt;Preface&lt;&#x2F;h2&gt;
+&lt;p&gt;“What does an experienced software engineer discover when s&#x2F;he uses an executable specification language to rigorously revisit ideas s&#x2F;he already knows?”&lt;&#x2F;p&gt;
+&lt;p&gt;I&#x27;ve been modeling software systems using &lt;strong&gt;Finite State Machine-based&lt;&#x2F;strong&gt; approach for many years. &#x27;State transition&#x27; is hardly a new territory for me.&lt;&#x2F;p&gt;
+&lt;p&gt;My interest in Quint isn&#x27;t academic. I&#x27;ve been working on an actor-based Digital Twin, where state, events, asynchronous messages and ordering are practical engineering concerns. Quint gives me a way to examine those concerns at a higher level of rigor.&lt;&#x2F;p&gt;
+&lt;p&gt;Now, the interesting part hasn&#x27;t been learning about &#x27;state&#x27;-s or &#x27;transition&#x27;-s; it has been discovering the assumptions hiding between them - the &lt;strong&gt;Aha&lt;&#x2F;strong&gt; moments 😃. I am becoming familiar describing &#x27;state&#x27;-s and &#x27;transition-s&#x27;, into executable specifications and subjecting them to systematic exploration.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;Important ✋ : This is &lt;strong&gt;not&lt;&#x2F;strong&gt; a Quint tutorial. I have been following their tutorial &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;quint.sh&#x2F;docs&#x2F;getting-started&quot;&gt;here&lt;&#x2F;a&gt;, all along. The specifications live in &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;quint-specification-journey&quot;&gt;&lt;code&gt;quint-specification-journey&lt;&#x2F;code&gt;&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;the-aha-moments-for-me&quot;&gt;The &lt;em&gt;Aha&lt;&#x2F;em&gt; moments for me&lt;&#x2F;h2&gt;
+&lt;h3 id=&quot;aha-moment-1-i-have-known-state-transitions-for-many-years-quint-makes-me-pinpoint-exactly-which-transitions-are-permissible&quot;&gt;Aha moment #1 — I have known state transitions for many years. Quint makes me pinpoint exactly which transitions are permissible&lt;&#x2F;h3&gt;
+&lt;p&gt;I have worked with state-machine models for years; so NFAs, DFAs, states, transitions, guard-conditions and exit handlers, were familiar territory. What is different here, is having to express the transition precisely enough for a model checker to explore it.&lt;&#x2F;p&gt;
+&lt;p&gt;In a Quint specification, the state is not an abstract notion sitting behind the model. It is the collection of the current values of the state variables. An action examines those values and, through assignments to primed variables (suffixed with &lt;strong&gt;&#x27;&lt;&#x2F;strong&gt;), specifies the values in the next state.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;traffic_light&amp;#39; = &#x2F;&#x2F; The next transition begins with the value assigned, here.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        if (traffic_light == RED) { GREEN }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        else if (traffic_light == GREEN) { YELLOW }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        else { RED }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;There is no room here for “what I intend the traffic light to do.”. The specification has to say exactly which next state this action permits from the current state.&lt;&#x2F;p&gt;
+&lt;p&gt;Quint hasn&#x27;t taught me what a &#x27;state transition&#x27; is (I know that quite well); but it makes me pinpoint exactly what a transition permits.&lt;&#x2F;p&gt;
+&lt;p&gt;Code: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;quint-specification-journey&#x2F;blob&#x2F;main&#x2F;traffic_light.qnt&quot;&gt;&lt;code&gt;traffic_light.qnt&lt;&#x2F;code&gt;&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;aha-moment-2-i-am-quite-familiar-with-transitions-quint-reminds-me-that-if-i-don-t-expressly-forbid-it-i-permit-a-transition&quot;&gt;Aha moment #2: I am quite familiar with transitions. Quint reminds me that if I don&#x27;t expressly forbid it, I permit a transition.&lt;&#x2F;h3&gt;
+&lt;p&gt;Guard conditions always evaluate to a true&#x2F;false value. They determine whether a transition is enabled from the current state. If the guard is false, that transition is not part of the possible next transitions from that state.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;action openDoor = .. {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;          ..&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;          physical_door.door_access == Closed and physical_door.lock_condition == Unlocked,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;	      ..&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;My intuition says that opening a locked door is obviously invalid. Quint doesn&#x27;t share that intuition. If I don&#x27;t constrain the transition, it remains a possible behaviour of the model.&lt;&#x2F;p&gt;
+&lt;p&gt;The idea of a guard isn&#x27;t new to me. What Quint exposes more deeply is how completely the guard has to capture the behaviour I want to permit.&lt;&#x2F;p&gt;
+&lt;p&gt;Code: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;quint-specification-journey&#x2F;blob&#x2F;main&#x2F;door_and_lock.qnt&quot;&gt;&lt;code&gt;door_and_lock.qnt&lt;&#x2F;code&gt;&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;aha-moment-3-an-invariant-pins-me-down-think-hard-what-must-always-be-true&quot;&gt;Aha moment #3: An invariant pins me down - &quot;think hard; what must &lt;strong&gt;always&lt;&#x2F;strong&gt; be true&quot;?&lt;&#x2F;h3&gt;
+&lt;p&gt;I already know invariants as a modelling and verification concept. What Quint exposes more deeply is that &lt;strong&gt;formulating the invariant is itself part of understanding the behaviour&lt;&#x2F;strong&gt;.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;val door_is_stable =&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    not (&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        physical_door.door_access == Open and&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;        physical_door.lock_condition == Locked&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    )&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The invariant is simple, even obvious. But stating it explicitly forces me to articulate what I mean by a valid state — and, more importantly — what must never become true.&lt;&#x2F;p&gt;
+&lt;p&gt;When I run quint, I mention the invariant:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;code&gt;quint run door_and_lock.qnt --invariant door_is_stable&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Quint explores the states and transitions and informs me if the invariant fails.&lt;&#x2F;p&gt;
+&lt;p&gt;Importantly, the model checker can tell me whether my model satisfies the invariant I give it; it cannot tell me whether I captured the property that actually matters. This is a key observation.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;aha-moment-4-quint-makes-the-unchanged-state-explicit&quot;&gt;Aha moment #4: Quint makes the “unchanged” state explicit.&lt;&#x2F;h3&gt;
+&lt;p&gt;I know that an action may change some parts of state while leaving others untouched. While programming in my favourite language, that can remain implicit. Quint makes me account for it explicitly.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;action deposit = &lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;       nondet to_account = ACCOUNTS.oneOf()&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;       nondet d = 1.to(50).oneOf()&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;       all {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;	    balances&amp;#39; = balances.set(to_account, balances.get(to_account) + d) ,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;	    total_deposit_amount&amp;#39; = total_deposit_amount + d,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;	    total_withdrawal_amount&amp;#39; = total_withdrawal_amount, &#x2F;&#x2F; &amp;lt;-- No change; yet explicit&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;	    total_money_supply&amp;#39; = total_money_supply &#x2F;&#x2F; &amp;lt;-- No change; yet explicit&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;	   }&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;I have to state explicitly that &lt;code&gt;total_withdrawal_amount&lt;&#x2F;code&gt; and &lt;code&gt;total_money_supply&lt;&#x2F;code&gt; remain unchanged during &lt;code&gt;deposit&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;Code: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;quint-specification-journey&#x2F;blob&#x2F;main&#x2F;bank_transactions.qnt&quot;&gt;&lt;code&gt;bank_transactions.qnt&lt;&#x2F;code&gt;&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;aha-moment-5-non-determinism-lets-me-leave-the-environment-s-choices-unspecified&quot;&gt;Aha moment #5: Non-determinism lets me leave the environment&#x27;s choices unspecified.&lt;&#x2F;h3&gt;
+&lt;p&gt;I already know that asynchronous systems involve choices I don&#x27;t control. What Quint exposes more deeply is that I canmake that &lt;em&gt;nondeterminism&lt;&#x2F;em&gt; explicit in the specification.&lt;&#x2F;p&gt;
+&lt;p&gt;Which transition happens next?&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;action step = any {&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    sendMessage,&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;    deliverMessage&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;}&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;And, when &lt;code&gt;deliverMessage&lt;&#x2F;code&gt; is chosen, which message is delivered?&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;nondet m = in_transit.oneOf()&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Asynchrony gives the environment choices at more than one level. Which transition happens next? And, if delivery happens, which message is involved? &lt;code&gt;any&lt;&#x2F;code&gt; and &lt;code&gt;nondet&lt;&#x2F;code&gt; let me leave those choices unspecified rather than building a convenient execution order into the model.&lt;&#x2F;p&gt;
+&lt;p&gt;Aha #2 said: &lt;strong&gt;If I don&#x27;t forbid it, I have permitted it.&lt;&#x2F;strong&gt; Here I am deliberately leaving some choices unconstrained because they belong to the environment, not to my system.&lt;&#x2F;p&gt;
+&lt;p&gt;Code: &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;quint-specification-journey&#x2F;blob&#x2F;main&#x2F;send_and_deliver.qnt&quot;&gt;&lt;code&gt;send_and_deliver.qnt&lt;&#x2F;code&gt;&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;endnote&quot;&gt;Endnote&lt;&#x2F;h2&gt;
+&lt;p&gt;Quint is a model checker. A model checker can establish properties of the specification. It cannot determine whether the specification captured the actual requirements.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;That responsibility remains mine.&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;And, the journey continues, anticipating more such &lt;em&gt;Aha&lt;&#x2F;em&gt; moments!&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
+</feed>
