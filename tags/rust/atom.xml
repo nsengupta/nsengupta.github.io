@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Nirmalya Sengupta - rust</title>
+    <subtitle>Software Programming, reflections, soliloquys </subtitle>
+    <link rel="self" type="application/atom+xml" href="https://nsengupta.github.io/tags/rust/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://nsengupta.github.io"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2026-09-19T00:00:00+00:00</updated>
+    <id>https://nsengupta.github.io/tags/rust/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Digital Twin observing RemotiveCar from the topology Bus</title>
+        <published>2026-09-19T00:00:00+00:00</published>
+        <updated>2026-09-19T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/integration-digital-twin-remotive/"/>
+        <id>https://nsengupta.github.io/blog/integration-digital-twin-remotive/</id>
+        
+        <content type="html" xml:base="https://nsengupta.github.io/blog/integration-digital-twin-remotive/">&lt;h3 id=&quot;tl-dr&quot;&gt;tl;dr&lt;&#x2F;h3&gt;
+&lt;p&gt;My ongoing project of a Car&#x27;s Digital Twin (&lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-milestone-1&#x2F;&quot;&gt;here&lt;&#x2F;a&gt;) depends on its own emulator to raise
+ECU signals on CANBus. Remotive&#x27;s &lt;code&gt;Hello World&lt;&#x2F;code&gt; &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;remotivelabs&#x2F;remotivelabs-topology-examples&#x2F;blob&#x2F;main&#x2F;remotive_car&#x2F;instances&#x2F;hello_world&#x2F;README.md&quot;&gt;topology&lt;&#x2F;a&gt; emulates ECUs for their product.&lt;&#x2F;p&gt;
+&lt;p&gt;I integrate these two, so that &lt;code&gt;Hello,world&lt;&#x2F;code&gt; runs in the way it is meant to; Digital Twin holds the
+car-wide state, including dedicated children actors, for each of the ECUs it listens to.&lt;&#x2F;p&gt;
+&lt;p&gt;In the topology, ECUs communicate through the &lt;code&gt;RemotiveBus&lt;&#x2F;code&gt;; the cute digital car responds to the
+messages that are carried through this bus; so does the Digital Twin; the observer.&lt;&#x2F;p&gt;
+&lt;p&gt;The payoff is visible in seconds: fail or mute the front-lamp ECU and the webpage still looks healthy while the Twin is already warning.&lt;&#x2F;p&gt;
+&lt;p&gt;The aim is not: “&lt;em&gt;Can we rebuild Remotive in Rust?&lt;&#x2F;em&gt;”.&lt;&#x2F;p&gt;
+&lt;p&gt;The aim is : &lt;strong&gt;can the Twin I&#x27;ve already built, attach to a live vehicle topology, watch what the ECUs actually
+say, and warn — without teaching the 3D car to go dark?&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;The &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_remotive&#x2F;blob&#x2F;main&#x2F;README.md&quot;&gt;repo README&lt;&#x2F;a&gt; is the technical source of truth for that integration.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;In Software-Defined-Vehicles, digital twins can be more than HMI mirrors, like catching faults
+the driver display will not show.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;the-architecture-at-a-glance&quot;&gt;The Architecture At a glance&lt;&#x2F;h3&gt;
+&lt;p&gt;The &lt;em&gt;Digital Twin&lt;&#x2F;em&gt; (&lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-milestone-1&#x2F;&quot;&gt;link&lt;&#x2F;a&gt;) owns its own CAN world: an emulator drives the session, Gateway holds the
+twin, and a separate TUI only watches (i.e., works as the dashboard).&lt;&#x2F;p&gt;
+&lt;p&gt;This prototypes attaches that same twin to a &lt;strong&gt;live Remotive Hello World&lt;&#x2F;strong&gt; vehicle — Jupyter, ECU models, and the 3D “cute car” — &lt;em&gt;without&lt;&#x2F;em&gt; moving into Remotive’s containers or rewriting how the webpage paints.&lt;&#x2F;p&gt;
+&lt;p&gt;Remotive already has a signal hub (&lt;strong&gt;RemotiveBroker&lt;&#x2F;strong&gt;). What I add is a small Twin-side process,
+&lt;code&gt;remotive_bridge&lt;&#x2F;code&gt;, that sits beside that hub:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  Operator &#x2F; Jupyter &#x2F; 3D cute car&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;            │&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;            ▼&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;      RemotiveBroker          (already in Remotive topology)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;            │&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;            ├──► Remotive ECUs (BCM, FLCM, …)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;            └──► remotive_bridge ──┬── observed ECU signals&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                   │      (hazard, turns, lamp status)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                   └── Twin session frames&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                          (PowerOn &#x2F; RPM &#x2F; PowerOff)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                            │&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                            ▼&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                      Gateway Twin ──► TUI Dashboard&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                            │&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                            ▼&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                      Disk: versioned observations&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;blockquote&gt;
+&lt;p&gt;📌
+Remotive stays the &lt;strong&gt;authoritative vehicle model&lt;&#x2F;strong&gt;. The Twin stays the &lt;strong&gt;authoritative
+observer&lt;&#x2F;strong&gt; of selected signals and faults. They meet at the broker; they do not swallow each
+other.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;motivation&quot;&gt;Motivation&lt;&#x2F;h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;A Digital Twin that only mirrors the HMI is a mirror, not a &lt;em&gt;twin&lt;&#x2F;em&gt; .&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;The Remotive &lt;code&gt;Hello World&lt;&#x2F;code&gt; demo is a joy to use: a notebook, a cute car in the browser, lamps
+that come on when you ask. What it does &lt;em&gt;not&lt;&#x2F;em&gt; do, out of the box, is notice when the front-lamp ECU is lying — or has gone quiet. Command paths can look healthy while a lamp ECU is dead. That &lt;strong&gt;gap&lt;&#x2F;strong&gt; is where observation &lt;strong&gt;earns its keep&lt;&#x2F;strong&gt;.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;So the question for this exercise has not been “&lt;em&gt;Can we rebuild Remotive in Rust?&lt;&#x2F;em&gt;” It has been:
+&lt;strong&gt;can the Twin I&#x27;ve already built, attach to a live vehicle topology, watch what the ECUs actually
+say, and warn — without teaching the 3D car to go dark?&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;The answer has turned out to be a delighted &#x27;Yes&#x27;. And the value of the integration is clearly
+visible: I fail the lamp ECU (or mute it), the webpage stays sunny, and the Twin is already
+shouting.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;quick-snap&quot;&gt;Quick snap&lt;&#x2F;h3&gt;
+&lt;video autoplay loop muted playsinline width=&quot;100%&quot;&gt;
+  &lt;source src=&quot;.&#x2F;application-running.webm&quot; type=&quot;video&#x2F;webm&quot;&gt;
+  Your browser does not support HTML5 video.
+&lt;&#x2F;video&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;open-file-folder-where-this-sits-in-the-journey&quot;&gt;📂 Where this sits in the journey&lt;&#x2F;h3&gt;
+&lt;p&gt;This post builds on the &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-milestone-1&#x2F;&quot;&gt;capstone&lt;&#x2F;a&gt;.
+If you are interested in the Twin’s origin story — actors, Gateway&#x2F;Dashboard split, observation
+as a facility — start here:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;The Twin itself:&lt;&#x2F;strong&gt; &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-milestone-1&#x2F;&quot;&gt;Digital Twin: Designing an Actor-Based SDV Prototype in Rust (Milestone 1)&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Runnable Twin &lt;em&gt;without&lt;&#x2F;em&gt; Remotive:&lt;&#x2F;strong&gt; &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_5&quot;&gt;&lt;code&gt;sdv_simulation_5&lt;&#x2F;code&gt;&lt;&#x2F;a&gt;&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;This integration effort:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;This repo:&lt;&#x2F;strong&gt; &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_remotive&quot;&gt;&lt;code&gt;sdv_simulation_remotive&lt;&#x2F;code&gt;&lt;&#x2F;a&gt; — the &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_remotive&#x2F;blob&#x2F;main&#x2F;README.md&quot;&gt;README&lt;&#x2F;a&gt; is the technical home (what it proves, how the pieces fit, how to run)&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Remotive examples:&lt;&#x2F;strong&gt; &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;remotivelabs&#x2F;remotivelabs-topology-examples&quot;&gt;&lt;code&gt;remotivelabs-topology-examples&lt;&#x2F;code&gt;&lt;&#x2F;a&gt;,&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;the-approach-attach-don-t-absorb&quot;&gt;The approach: attach, don&#x27;t absorb&lt;&#x2F;h3&gt;
+&lt;p&gt;&lt;em&gt;Hello World&lt;&#x2F;em&gt; is not one process. Jupyter, ECU models, and the 3D car already meet at
+&lt;strong&gt;RemotiveBroker&lt;&#x2F;strong&gt; — named signals over gRPC. That hub already exists; I&#x27;ve just used it.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;code&gt;remotive_bridge&lt;&#x2F;code&gt; has a dual role, and both roles matter:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Translate Remotive → Twin.&lt;&#x2F;strong&gt; Subscribe to a handful of signals — hazard, turn requests,
+front low-beam &lt;em&gt;status&lt;&#x2F;em&gt; — and map them onto the Twin’s own CAN vocabulary. &lt;em&gt;Remotive keeps
+speaking Remotive; the Twin keeps speaking Twin&#x27;s vocabulary&lt;&#x2F;em&gt;.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Start the Twin’s brain in the right order.&lt;&#x2F;strong&gt; The Twin’s actor tree is lifecycle-sensitive:
+a brain FSM coordinates child actors and expects PowerOn --&amp;gt; motion -&amp;gt; PowerOff. Remotive does
+not emit those Twin-specific frames, so the bridge also &lt;em&gt;generates&lt;&#x2F;em&gt; them. Without that, observations never accumulate into the global view the dashboard shows.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;The Gateway never sees “broker messages.” It sees two kinds of Twin CAN input from the same
+interface: observed ECU traffic, and the session frames that used to come from the capstone
+emulator (kind of backward compatibility in the codebase).&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;📌
+We treat the broker as the shared signal bus Remotive already provides. The Twin attaches
+&lt;strong&gt;beside&lt;&#x2F;strong&gt; the vehicle model. It does not replace Remotive’s ECUs, and it does not reach into their containers.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;why-that-arrangement-is-the-value-proposition&quot;&gt;Why that arrangement is the value proposition&lt;&#x2F;h3&gt;
+&lt;p&gt;There are two paths for the same light stalk:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Command path.&lt;&#x2F;strong&gt; Jupyter → BCM &lt;em&gt;requests&lt;&#x2F;em&gt; → cute car paints low beams &lt;strong&gt;ON&lt;&#x2F;strong&gt;. This path is unchanged on purpose.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Status path.&lt;&#x2F;strong&gt; FLCM publishes low-beam &lt;strong&gt;status&lt;&#x2F;strong&gt; Ok | Fail | Silent (this is a
+change brought in by me; original Remotive sample, doesn&#x27;t have this). BCM and the webpage do not
+consume that status.
+The Twin does — and &lt;strong&gt;Warning&lt;&#x2F;strong&gt; on its TUI, is that summary speaking.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The Twin holds a &lt;strong&gt;global, summated state&lt;&#x2F;strong&gt; of the vehicle from what ECUs say on the bus, not
+from what the 3D manifestation paints. I haven&#x27;t taught the cute car to go dark. I&#x27;ve taught the
+Twin to notice.&lt;&#x2F;p&gt;
+&lt;p&gt;A small delight along the way: Remotive’s &lt;em&gt;hazard&lt;&#x2F;em&gt; button on the bus is often a &lt;em&gt;momentary&lt;&#x2F;em&gt;
+pulse. Drivers expect “hazards are on” until they press again. The Twin latches that
+into a lasting &lt;strong&gt;hazard mode&lt;&#x2F;strong&gt;, so the TUI matches the expectation while the 3D car still blinks from BCM.&lt;&#x2F;p&gt;
+&lt;h3 id=&quot;the-punchline-you-can-run-this&quot;&gt;The punchline (you can run this)&lt;&#x2F;h3&gt;
+&lt;p&gt;Use only Light stalk, &lt;strong&gt;FLCM Ok | Fail | Silent&lt;&#x2F;strong&gt;, Hazard &lt;code&gt;!&lt;&#x2F;code&gt;, and optionally the Turn stalk. Leave Low Beam on after the first step.&lt;&#x2F;p&gt;
+&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Step&lt;&#x2F;th&gt;&lt;th&gt;What you do&lt;&#x2F;th&gt;&lt;th&gt;Cute car&lt;&#x2F;th&gt;&lt;th&gt;Twin TUI&lt;&#x2F;th&gt;&lt;&#x2F;tr&gt;&lt;&#x2F;thead&gt;&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;1&lt;&#x2F;td&gt;&lt;td&gt;Light stalk → &lt;strong&gt;Low Beam&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;Front beams &lt;strong&gt;ON&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;Low Beam OK &#x2F; OK; Hazard OFF&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;2&lt;&#x2F;td&gt;&lt;td&gt;&lt;strong&gt;FLCM Fail&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;Beams &lt;strong&gt;still ON&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;Warning; Low Beam FAIL &#x2F; FAIL&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;3&lt;&#x2F;td&gt;&lt;td&gt;&lt;strong&gt;FLCM Ok&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;Still ON&lt;&#x2F;td&gt;&lt;td&gt;Warning clears&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;4&lt;&#x2F;td&gt;&lt;td&gt;&lt;strong&gt;FLCM Silent&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;Still ON&lt;&#x2F;td&gt;&lt;td&gt;Within ~500 ms: Warning (&lt;code&gt;silent&lt;&#x2F;code&gt;); status goes &lt;em&gt;stale&lt;&#x2F;em&gt;&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;5&lt;&#x2F;td&gt;&lt;td&gt;&lt;strong&gt;FLCM Ok&lt;&#x2F;strong&gt;&lt;&#x2F;td&gt;&lt;td&gt;Still ON&lt;&#x2F;td&gt;&lt;td&gt;Healthy again&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;6 &lt;em&gt;(optional)&lt;&#x2F;em&gt;&lt;&#x2F;td&gt;&lt;td&gt;Turn stalk → Left, then Off&lt;&#x2F;td&gt;&lt;td&gt;Left blinker&lt;&#x2F;td&gt;&lt;td&gt;Front Light ON then OFF &lt;em&gt;(turns, not headlamps)&lt;&#x2F;em&gt;&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;tr&gt;&lt;td&gt;7&lt;&#x2F;td&gt;&lt;td&gt;Hazard &lt;strong&gt;&lt;code&gt;!&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt; once&lt;&#x2F;td&gt;&lt;td&gt;Hazards blink&lt;&#x2F;td&gt;&lt;td&gt;&lt;strong&gt;Hazard: ON&lt;&#x2F;strong&gt; and it &lt;em&gt;stays&lt;&#x2F;em&gt; ON&lt;&#x2F;td&gt;&lt;&#x2F;tr&gt;
+&lt;&#x2F;tbody&gt;&lt;&#x2F;table&gt;
+&lt;p&gt;Steps &lt;strong&gt;2&lt;&#x2F;strong&gt; and &lt;strong&gt;4&lt;&#x2F;strong&gt; are the money shots. The paint can look fine. The bus, watched carefully, is harder to fool.&lt;&#x2F;p&gt;
+&lt;p&gt;How to actually spin the topology, Gateway, TUI, and bridge: see the &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_remotive&#x2F;blob&#x2F;main&#x2F;README.md&quot;&gt;README&lt;&#x2F;a&gt; and the design runbook linked from there. This post is the &lt;em&gt;why&lt;&#x2F;em&gt;; those pages are the &lt;em&gt;how&lt;&#x2F;em&gt;.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;what-i-ve-not-implemented-on-purpose&quot;&gt;What I&#x27;ve not implemented (on purpose)&lt;&#x2F;h3&gt;
+&lt;p&gt;Scope honesty is part of the story:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;The Twin does &lt;strong&gt;not&lt;&#x2F;strong&gt; publish commands back into RemotiveBroker.&lt;&#x2F;li&gt;
+&lt;li&gt;BCM, GWM, and the cute car are &lt;strong&gt;not&lt;&#x2F;strong&gt; taught to consume FLCM status.&lt;&#x2F;li&gt;
+&lt;li&gt;The legacy emulator and headlamp&#x2F;wiper actuator binaries are &lt;strong&gt;not&lt;&#x2F;strong&gt; required for this demo.&lt;&#x2F;li&gt;
+&lt;li&gt;Richer ECU stories — rear-lamp reply checks, brake timeouts, Twin-driven stimulus — are deferred.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;The integration is valuable &lt;em&gt;because&lt;&#x2F;em&gt; of that boundary. Observation that rewrites the vehicle model is just a second simulator.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h3 id=&quot;what-this-opens-up&quot;&gt;What this opens up&lt;&#x2F;h3&gt;
+&lt;p&gt;Once a Twin can attach to a real (or realistically modelled) vehicle bus and disagree with the
+HMI, a number of doors swing open:&lt;&#x2F;p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Honest consumers next.&lt;&#x2F;strong&gt; Teach a Remotive ECU to react to FLCM Fail, and the cute car can go dark &lt;em&gt;because the vehicle learned it&lt;&#x2F;em&gt; — a different thesis, and a natural sequel.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;More of the bus.&lt;&#x2F;strong&gt; The five-signal slice is a beachhead. Hazard, turns, and lamp status were enough to prove the seam. The same bridge pattern extends.&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Replay and CI.&lt;&#x2F;strong&gt; The Twin already writes a durable observation trail. Broker traces plus those files are how you stop needing a full 3D topology to regression-test “did we notice the silent lamp?”&lt;&#x2F;li&gt;
+&lt;li&gt;&lt;strong&gt;Eclipse SDV neighbourhood.&lt;&#x2F;strong&gt; The Twin already speaks CAN for the vehicle side and UDS or
+Zenoh for live observation. Middleware such as uProtocol is still on the horizon from the
+capstone — this project hasn&#x27;t waited for it.&lt;&#x2F;li&gt;
+&lt;&#x2F;ol&gt;
+&lt;p&gt;Until the 3D car is mapped onto FLCM status, the contrast &lt;em&gt;is&lt;&#x2F;em&gt; the product: bright car, honest
+Warning. But, this is Remotive&#x27;s code and I am not an expert in python or javascript.&lt;&#x2F;p&gt;
+&lt;p&gt;The paint can lie. A twin that watches the bus is how one catches that — live, next to a vehicle
+model I don&#x27;t own.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;script data-goatcounter=&quot;https:&#x2F;&#x2F;nsengupta.goatcounter.com&#x2F;count&quot;
+            async src=&quot;&#x2F;&#x2F;gc.zgo.at&#x2F;count.js&quot;&gt;&lt;&#x2F;script&gt;
+</content>
+        
+    </entry>
+</feed>

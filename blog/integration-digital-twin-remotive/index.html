@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  
+  
+  <meta name="description" content="Software Programming, reflections, soliloquys " />
+  
+  
+
+  <title>
+    
+    Digital Twin observing RemotiveCar from the topology Bus
+    
+</title>
+
+  
+  <link rel="stylesheet" href="https://nsengupta.github.io/site.css">
+  
+
+  
+  
+</head>
+
+<body class="hack dark main container">
+  
+
+<style>
+body.container {
+    max-width: 68rem !important;
+}
+
+article p,
+article li,
+main p,
+main li {
+    font-size: 1.08rem !important;
+    line-height: 1.65 !important;
+}
+
+article h1,
+main h1 {
+    font-size: 1.8rem !important;
+    line-height: 1.3 !important;
+}
+
+article h2,
+main h2 {
+    font-size: 1.5rem !important;
+}
+
+article h3,
+main h3 {
+    font-size: 1.25rem !important;
+}
+
+/* Remove the gigantic ===== decoration */
+.hack h1:after {
+    content: "" !important;
+}
+
+/* Remove Markdown-style heading prefixes (#, ##, ###, etc.) */
+.hack h2:before,
+.hack h3:before,
+.hack h4:before,
+.hack h5:before,
+.hack h6:before {
+    content: "" !important;
+}
+</style>
+
+
+    
+        
+  
+  <header class="nav-header">
+    <nav itemscope itemtype="http://schema.org/SiteNavigationElement" class="navbar">
+      <div class="nav-links">
+        
+        <a itemprop="url"
+          class=""
+          href="/">
+          <span itemprop="name">Home</span></a>
+        
+        <a itemprop="url"
+          class=""
+          href="/blog">
+          <span itemprop="name">Technical Blog</span></a>
+        
+      </div>
+    </nav>
+    
+
+  </header>
+  
+  
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">Digital Twin observing RemotiveCar from the topology Bus</h1>
+        <span class="muted">
+    <svg class="icon i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>8 minute read</span>
+    <svg class="icon i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    Published: 2026-09-19
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <h3 id="tl-dr">tl;dr</h3>
+<p>My ongoing project of a Car's Digital Twin (<a rel="external" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-milestone-1/">here</a>) depends on its own emulator to raise
+ECU signals on CANBus. Remotive's <code>Hello World</code> <a rel="external" href="https://github.com/remotivelabs/remotivelabs-topology-examples/blob/main/remotive_car/instances/hello_world/README.md">topology</a> emulates ECUs for their product.</p>
+<p>I integrate these two, so that <code>Hello,world</code> runs in the way it is meant to; Digital Twin holds the
+car-wide state, including dedicated children actors, for each of the ECUs it listens to.</p>
+<p>In the topology, ECUs communicate through the <code>RemotiveBus</code>; the cute digital car responds to the
+messages that are carried through this bus; so does the Digital Twin; the observer.</p>
+<p>The payoff is visible in seconds: fail or mute the front-lamp ECU and the webpage still looks healthy while the Twin is already warning.</p>
+<p>The aim is not: “<em>Can we rebuild Remotive in Rust?</em>”.</p>
+<p>The aim is : <strong>can the Twin I've already built, attach to a live vehicle topology, watch what the ECUs actually
+say, and warn — without teaching the 3D car to go dark?</strong></p>
+<p>The <a rel="external" href="https://github.com/nsengupta/sdv_simulation_remotive/blob/main/README.md">repo README</a> is the technical source of truth for that integration.</p>
+<blockquote>
+<p>In Software-Defined-Vehicles, digital twins can be more than HMI mirrors, like catching faults
+the driver display will not show.</p>
+</blockquote>
+<hr />
+<h3 id="the-architecture-at-a-glance">The Architecture At a glance</h3>
+<p>The <em>Digital Twin</em> (<a rel="external" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-milestone-1/">link</a>) owns its own CAN world: an emulator drives the session, Gateway holds the
+twin, and a separate TUI only watches (i.e., works as the dashboard).</p>
+<p>This prototypes attaches that same twin to a <strong>live Remotive Hello World</strong> vehicle — Jupyter, ECU models, and the 3D “cute car” — <em>without</em> moving into Remotive’s containers or rewriting how the webpage paints.</p>
+<p>Remotive already has a signal hub (<strong>RemotiveBroker</strong>). What I add is a small Twin-side process,
+<code>remotive_bridge</code>, that sits beside that hub:</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>  Operator / Jupyter / 3D cute car</span></span>
+<span class="giallo-l"><span>            │</span></span>
+<span class="giallo-l"><span>            ▼</span></span>
+<span class="giallo-l"><span>      RemotiveBroker          (already in Remotive topology)</span></span>
+<span class="giallo-l"><span>            │</span></span>
+<span class="giallo-l"><span>            ├──► Remotive ECUs (BCM, FLCM, …)</span></span>
+<span class="giallo-l"><span>            └──► remotive_bridge ──┬── observed ECU signals</span></span>
+<span class="giallo-l"><span>                                   │      (hazard, turns, lamp status)</span></span>
+<span class="giallo-l"><span>                                   └── Twin session frames</span></span>
+<span class="giallo-l"><span>                                          (PowerOn / RPM / PowerOff)</span></span>
+<span class="giallo-l"><span>                                            │</span></span>
+<span class="giallo-l"><span>                                            ▼</span></span>
+<span class="giallo-l"><span>                                      Gateway Twin ──► TUI Dashboard</span></span>
+<span class="giallo-l"><span>                                            │</span></span>
+<span class="giallo-l"><span>                                            ▼</span></span>
+<span class="giallo-l"><span>                                      Disk: versioned observations</span></span></code></pre>
+<blockquote>
+<p>📌
+Remotive stays the <strong>authoritative vehicle model</strong>. The Twin stays the <strong>authoritative
+observer</strong> of selected signals and faults. They meet at the broker; they do not swallow each
+other.</p>
+</blockquote>
+<hr />
+<h3 id="motivation">Motivation</h3>
+<ul>
+<li>
+<p>A Digital Twin that only mirrors the HMI is a mirror, not a <em>twin</em> .</p>
+</li>
+<li>
+<p>The Remotive <code>Hello World</code> demo is a joy to use: a notebook, a cute car in the browser, lamps
+that come on when you ask. What it does <em>not</em> do, out of the box, is notice when the front-lamp ECU is lying — or has gone quiet. Command paths can look healthy while a lamp ECU is dead. That <strong>gap</strong> is where observation <strong>earns its keep</strong>.</p>
+</li>
+</ul>
+<p>So the question for this exercise has not been “<em>Can we rebuild Remotive in Rust?</em>” It has been:
+<strong>can the Twin I've already built, attach to a live vehicle topology, watch what the ECUs actually
+say, and warn — without teaching the 3D car to go dark?</strong></p>
+<p>The answer has turned out to be a delighted 'Yes'. And the value of the integration is clearly
+visible: I fail the lamp ECU (or mute it), the webpage stays sunny, and the Twin is already
+shouting.</p>
+<hr />
+<h3 id="quick-snap">Quick snap</h3>
+<video autoplay loop muted playsinline width="100%">
+  <source src="./application-running.webm" type="video/webm">
+  Your browser does not support HTML5 video.
+</video>
+<hr />
+<h3 id="open-file-folder-where-this-sits-in-the-journey">📂 Where this sits in the journey</h3>
+<p>This post builds on the <a rel="external" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-milestone-1/">capstone</a>.
+If you are interested in the Twin’s origin story — actors, Gateway/Dashboard split, observation
+as a facility — start here:</p>
+<ul>
+<li><strong>The Twin itself:</strong> <a rel="external" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-milestone-1/">Digital Twin: Designing an Actor-Based SDV Prototype in Rust (Milestone 1)</a></li>
+<li><strong>Runnable Twin <em>without</em> Remotive:</strong> <a rel="external" href="https://github.com/nsengupta/sdv_simulation_5"><code>sdv_simulation_5</code></a></li>
+</ul>
+<p>This integration effort:</p>
+<ul>
+<li><strong>This repo:</strong> <a rel="external" href="https://github.com/nsengupta/sdv_simulation_remotive"><code>sdv_simulation_remotive</code></a> — the <a rel="external" href="https://github.com/nsengupta/sdv_simulation_remotive/blob/main/README.md">README</a> is the technical home (what it proves, how the pieces fit, how to run)</li>
+<li><strong>Remotive examples:</strong> <a rel="external" href="https://github.com/remotivelabs/remotivelabs-topology-examples"><code>remotivelabs-topology-examples</code></a>,</li>
+</ul>
+<hr />
+<h3 id="the-approach-attach-don-t-absorb">The approach: attach, don't absorb</h3>
+<p><em>Hello World</em> is not one process. Jupyter, ECU models, and the 3D car already meet at
+<strong>RemotiveBroker</strong> — named signals over gRPC. That hub already exists; I've just used it.</p>
+<p><code>remotive_bridge</code> has a dual role, and both roles matter:</p>
+<ol>
+<li>
+<p><strong>Translate Remotive → Twin.</strong> Subscribe to a handful of signals — hazard, turn requests,
+front low-beam <em>status</em> — and map them onto the Twin’s own CAN vocabulary. <em>Remotive keeps
+speaking Remotive; the Twin keeps speaking Twin's vocabulary</em>.</p>
+</li>
+<li>
+<p><strong>Start the Twin’s brain in the right order.</strong> The Twin’s actor tree is lifecycle-sensitive:
+a brain FSM coordinates child actors and expects PowerOn --&gt; motion -&gt; PowerOff. Remotive does
+not emit those Twin-specific frames, so the bridge also <em>generates</em> them. Without that, observations never accumulate into the global view the dashboard shows.</p>
+</li>
+</ol>
+<p>The Gateway never sees “broker messages.” It sees two kinds of Twin CAN input from the same
+interface: observed ECU traffic, and the session frames that used to come from the capstone
+emulator (kind of backward compatibility in the codebase).</p>
+<blockquote>
+<p>📌
+We treat the broker as the shared signal bus Remotive already provides. The Twin attaches
+<strong>beside</strong> the vehicle model. It does not replace Remotive’s ECUs, and it does not reach into their containers.</p>
+</blockquote>
+<hr />
+<h3 id="why-that-arrangement-is-the-value-proposition">Why that arrangement is the value proposition</h3>
+<p>There are two paths for the same light stalk:</p>
+<ul>
+<li><strong>Command path.</strong> Jupyter → BCM <em>requests</em> → cute car paints low beams <strong>ON</strong>. This path is unchanged on purpose.</li>
+<li><strong>Status path.</strong> FLCM publishes low-beam <strong>status</strong> Ok | Fail | Silent (this is a
+change brought in by me; original Remotive sample, doesn't have this). BCM and the webpage do not
+consume that status.
+The Twin does — and <strong>Warning</strong> on its TUI, is that summary speaking.</li>
+</ul>
+<p>The Twin holds a <strong>global, summated state</strong> of the vehicle from what ECUs say on the bus, not
+from what the 3D manifestation paints. I haven't taught the cute car to go dark. I've taught the
+Twin to notice.</p>
+<p>A small delight along the way: Remotive’s <em>hazard</em> button on the bus is often a <em>momentary</em>
+pulse. Drivers expect “hazards are on” until they press again. The Twin latches that
+into a lasting <strong>hazard mode</strong>, so the TUI matches the expectation while the 3D car still blinks from BCM.</p>
+<h3 id="the-punchline-you-can-run-this">The punchline (you can run this)</h3>
+<p>Use only Light stalk, <strong>FLCM Ok | Fail | Silent</strong>, Hazard <code>!</code>, and optionally the Turn stalk. Leave Low Beam on after the first step.</p>
+<table><thead><tr><th>Step</th><th>What you do</th><th>Cute car</th><th>Twin TUI</th></tr></thead><tbody>
+<tr><td>1</td><td>Light stalk → <strong>Low Beam</strong></td><td>Front beams <strong>ON</strong></td><td>Low Beam OK / OK; Hazard OFF</td></tr>
+<tr><td>2</td><td><strong>FLCM Fail</strong></td><td>Beams <strong>still ON</strong></td><td>Warning; Low Beam FAIL / FAIL</td></tr>
+<tr><td>3</td><td><strong>FLCM Ok</strong></td><td>Still ON</td><td>Warning clears</td></tr>
+<tr><td>4</td><td><strong>FLCM Silent</strong></td><td>Still ON</td><td>Within ~500 ms: Warning (<code>silent</code>); status goes <em>stale</em></td></tr>
+<tr><td>5</td><td><strong>FLCM Ok</strong></td><td>Still ON</td><td>Healthy again</td></tr>
+<tr><td>6 <em>(optional)</em></td><td>Turn stalk → Left, then Off</td><td>Left blinker</td><td>Front Light ON then OFF <em>(turns, not headlamps)</em></td></tr>
+<tr><td>7</td><td>Hazard <strong><code>!</code></strong> once</td><td>Hazards blink</td><td><strong>Hazard: ON</strong> and it <em>stays</em> ON</td></tr>
+</tbody></table>
+<p>Steps <strong>2</strong> and <strong>4</strong> are the money shots. The paint can look fine. The bus, watched carefully, is harder to fool.</p>
+<p>How to actually spin the topology, Gateway, TUI, and bridge: see the <a rel="external" href="https://github.com/nsengupta/sdv_simulation_remotive/blob/main/README.md">README</a> and the design runbook linked from there. This post is the <em>why</em>; those pages are the <em>how</em>.</p>
+<hr />
+<h3 id="what-i-ve-not-implemented-on-purpose">What I've not implemented (on purpose)</h3>
+<p>Scope honesty is part of the story:</p>
+<ul>
+<li>The Twin does <strong>not</strong> publish commands back into RemotiveBroker.</li>
+<li>BCM, GWM, and the cute car are <strong>not</strong> taught to consume FLCM status.</li>
+<li>The legacy emulator and headlamp/wiper actuator binaries are <strong>not</strong> required for this demo.</li>
+<li>Richer ECU stories — rear-lamp reply checks, brake timeouts, Twin-driven stimulus — are deferred.</li>
+</ul>
+<p>The integration is valuable <em>because</em> of that boundary. Observation that rewrites the vehicle model is just a second simulator.</p>
+<hr />
+<h3 id="what-this-opens-up">What this opens up</h3>
+<p>Once a Twin can attach to a real (or realistically modelled) vehicle bus and disagree with the
+HMI, a number of doors swing open:</p>
+<ol>
+<li><strong>Honest consumers next.</strong> Teach a Remotive ECU to react to FLCM Fail, and the cute car can go dark <em>because the vehicle learned it</em> — a different thesis, and a natural sequel.</li>
+<li><strong>More of the bus.</strong> The five-signal slice is a beachhead. Hazard, turns, and lamp status were enough to prove the seam. The same bridge pattern extends.</li>
+<li><strong>Replay and CI.</strong> The Twin already writes a durable observation trail. Broker traces plus those files are how you stop needing a full 3D topology to regression-test “did we notice the silent lamp?”</li>
+<li><strong>Eclipse SDV neighbourhood.</strong> The Twin already speaks CAN for the vehicle side and UDS or
+Zenoh for live observation. Middleware such as uProtocol is still on the horizon from the
+capstone — this project hasn't waited for it.</li>
+</ol>
+<p>Until the 3D car is mapped onto FLCM status, the contrast <em>is</em> the product: bright car, honest
+Warning. But, this is Remotive's code and I am not an expert in python or javascript.</p>
+<p>The paint can lie. A twin that watches the bus is how one catches that — live, next to a vehicle
+model I don't own.</p>
+<hr />
+<script data-goatcounter="https://nsengupta.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                
+                    
+                    tagged
+                    
+                        <a href="https://nsengupta.github.io/tags/sdv-prototype/">sdv-prototype</a>
+                        
+                            
+                                
+                                    ,
+                                
+                            
+                        
+                    
+                        <a href="https://nsengupta.github.io/tags/remotive/">remotive</a>
+                        
+                            
+                                
+                                    ,
+                                
+                            
+                        
+                    
+                        <a href="https://nsengupta.github.io/tags/digital-twin/">digital-twin</a>
+                        
+                            
+                                
+                                    and
+                                
+                            
+                        
+                    
+                        <a href="https://nsengupta.github.io/tags/rust/">rust</a>
+                        
+                            
+                        
+                    
+                
+            </p>
+            
+            
+        </footer>
+    
+</article>
+
+
+
+
+
+  <!-- optional scripts -->
+  
+  
+
+  
+
+  
+
+  
+</body>
+
+</html>
