@@ -112,7 +112,7 @@ main h3 {
         <circle cx="16" cy="16" r="14"/>
         <path d="M16 8 L16 16 20 20"/>
     </svg>
-    <span>8 minute read</span>
+    <span>9 minute read</span>
     <svg class="icon i-edit" viewBox="0 0 32 32"
          width="16" height="16" fill="none" stroke="currentcolor"
          stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
@@ -123,7 +123,50 @@ main h3 {
 </span>
     </header>
     <div itemprop="articleBody">
-      <h3 id="the-architecture-at-a-glance">The Architecture At a glance</h3>
+      <h3 id="at-a-glance-1-minute">At a glance (1 minute)</h3>
+<p>Lamps blink. Wipers swish. The cluster looks fine. A week later, in the bay, <strong>we still cannot prove what the vehicle believed</strong>. We have a complaint, not a story — what changed, in what order, and whether we can replay the run without the car in front of us. Closing that gap is what this prototype is aiming for.</p>
+<p>This work separates <strong>control</strong> from <strong>observation</strong>, the way a vehicle already separates actuation
+from the instrument cluster. A software <strong>Emulator</strong> plays the role of a test bench: it injects
+driving conditions such as speed, rain, and light onto the <strong>vehicle bus</strong> (CAN, the car's
+nervous system). A <strong>Gateway</strong>, standing in for a gateway ECU, is the sole owner of the
+<strong>Digital Twin</strong> — the software's live picture of the car. Inside that twin, a coordinator
+called the <strong>Brain</strong> keeps body <strong>assemblies</strong> such as the headlamp and the wiper in a known
+driving mode. It also writes every decision to an <strong>event recorder</strong> on disk, so we can replay
+the session later and know -  <strong>post-facto</strong>  - what did happen and when. A separate
+<strong>Dashboard</strong> is the instrument cluster and the workshop screen in one: it only watches, in a
+driver view and an engineer view, over a live diagnostic feed. It does not actuate any assembly
+(it can, if needs be).</p>
+<p><em><strong>Potential</strong>:</em> I have built the twin as an <strong>Actor system</strong> — isolated, message-driven workers
+of the kind that have run <strong>telecom switches</strong> for decades — and I have written it in
+<strong>Rust</strong>, the most modern systems programming language, for memory and concurrency safety that a traditional <strong>C++</strong> stack does not give us.</p>
+<blockquote>
+<p>📌 <strong>Actor systems at scale.</strong></p>
+<p>Actor-system based software has been successfully used in</p>
+<ul>
+<li>Telecom Switches (Ericsson),</li>
+<li>HFT (Goldman Sachs), and</li>
+<li>Siemens (industrial automation),</li>
+</ul>
+<p>in the past.</p>
+</blockquote>
+<p>That makes this work a candidate <strong>SIL</strong> (software-in-the-loop) testing and simulation component
+today: the twin, the bus, and the assemblies already form a virtual testbed which we can drive,
+watch, and replay.</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>[ Test-bench emulator ]</span></span>
+<span class="giallo-l"><span>         │</span></span>
+<span class="giallo-l"><span>         │  vehicle bus (CAN)</span></span>
+<span class="giallo-l"><span>         v</span></span>
+<span class="giallo-l"><span>┌─ Gateway (gateway-ECU role) ──────────┐</span></span>
+<span class="giallo-l"><span>│                                       │</span></span>
+<span class="giallo-l"><span>│   Digital Twin = the car in software  │──── live watch ───&gt; [ Dashboard ]</span></span>
+<span class="giallo-l"><span>│   Actor Brain + assemblies (Rust)     │</span></span>
+<span class="giallo-l"><span>│   driving mode, event recorder        │</span></span>
+<span class="giallo-l"><span>│                    │                  │</span></span>
+<span class="giallo-l"><span>└────────────────────┼──────────────────┘</span></span>
+<span class="giallo-l"><span>                     v</span></span>
+<span class="giallo-l"><span>            [ Disk: replayable session log ]</span></span></code></pre>
+<hr />
+<h3 id="the-architecture-at-a-glance">The Architecture At a glance</h3>
 <p>Stage V has evolved into a multi-process setup on Linux CAN: the Gateway holds a <strong>Digital Twin</strong> (Brain, assembly actors, ROB, FSM, Observation Tee); a separate TUI Dashboard only observes; runs land on disk as JSONL. Control stays on <code>vcan0</code>; live telemetry uses UDS or Zenoh.</p>
 <pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>[ Emulator ] ────&gt; (vcan0)  &lt;───────&gt; Wiper Actuator</span></span>
 <span class="giallo-l"><span>                     │  ^       │</span></span>

@@ -23,22 +23,42 @@
         <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/integration-digital-twin-remotive/"/>
         <id>https://nsengupta.github.io/blog/integration-digital-twin-remotive/</id>
         
-        <content type="html" xml:base="https://nsengupta.github.io/blog/integration-digital-twin-remotive/">&lt;h3 id=&quot;tl-dr&quot;&gt;tl;dr&lt;&#x2F;h3&gt;
-&lt;p&gt;My ongoing project of a Car&#x27;s Digital Twin (&lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-milestone-1&#x2F;&quot;&gt;here&lt;&#x2F;a&gt;) depends on its own emulator to raise
-ECU signals on CANBus. Remotive&#x27;s &lt;code&gt;Hello World&lt;&#x2F;code&gt; &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;remotivelabs&#x2F;remotivelabs-topology-examples&#x2F;blob&#x2F;main&#x2F;remotive_car&#x2F;instances&#x2F;hello_world&#x2F;README.md&quot;&gt;topology&lt;&#x2F;a&gt; emulates ECUs for their product.&lt;&#x2F;p&gt;
-&lt;p&gt;I integrate these two, so that &lt;code&gt;Hello,world&lt;&#x2F;code&gt; runs in the way it is meant to; Digital Twin holds the
-car-wide state, including dedicated children actors, for each of the ECUs it listens to.&lt;&#x2F;p&gt;
-&lt;p&gt;In the topology, ECUs communicate through the &lt;code&gt;RemotiveBus&lt;&#x2F;code&gt;; the cute digital car responds to the
-messages that are carried through this bus; so does the Digital Twin; the observer.&lt;&#x2F;p&gt;
-&lt;p&gt;The payoff is visible in seconds: fail or mute the front-lamp ECU and the webpage still looks healthy while the Twin is already warning.&lt;&#x2F;p&gt;
-&lt;p&gt;The aim is not: “&lt;em&gt;Can we rebuild Remotive in Rust?&lt;&#x2F;em&gt;”.&lt;&#x2F;p&gt;
-&lt;p&gt;The aim is : &lt;strong&gt;can the Twin I&#x27;ve already built, attach to a live vehicle topology, watch what the ECUs actually
-say, and warn — without teaching the 3D car to go dark?&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
-&lt;p&gt;The &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;github.com&#x2F;nsengupta&#x2F;sdv_simulation_remotive&#x2F;blob&#x2F;main&#x2F;README.md&quot;&gt;repo README&lt;&#x2F;a&gt; is the technical source of truth for that integration.&lt;&#x2F;p&gt;
+        <content type="html" xml:base="https://nsengupta.github.io/blog/integration-digital-twin-remotive/">&lt;h3 id=&quot;at-a-glance-1-minute&quot;&gt;At a glance (1 minute)&lt;&#x2F;h3&gt;
+&lt;p&gt;Imagine an ongoing simulation test cycle of an SDV ( &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;www.sdv.guide&#x2F;sdv101&#x2F;part-d-implementation-strategies&#x2F;implementing-the-shift-left&quot;&gt;&lt;strong&gt;Shift-Left&lt;&#x2F;strong&gt;&lt;&#x2F;a&gt; ). The cluster looks fine —
+beams on, no tell-tale — yet the front-lamp computer has failed, or gone mute. The cabin&#x27;s HMI never says so.&lt;&#x2F;p&gt;
+&lt;p&gt;But, a Digital Twin tells the observer, what is not right. It is the trustworthy source of the
+whole car&#x27;s state: what the ECUs said on the bus, even when that disagrees with the cluster.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;This integration addresses that case.&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;I attach the &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-milestone-1&#x2F;&quot;&gt;Digital Twin&lt;&#x2F;a&gt; I have already built to RemotiveLabs&#x27;
+&lt;strong&gt;Hello World&lt;&#x2F;strong&gt;; it stands for a starter virtual vehicle: ECU models on a bus, a notebook to drive them, and a 3D cluster to look at. &lt;strong&gt;&lt;code&gt;remotive_bridge&lt;&#x2F;code&gt;&lt;&#x2F;strong&gt; taps &lt;strong&gt;RemotiveBroker&lt;&#x2F;strong&gt; — hazard, turns, lamp status — and maps them onto the Twin. The &lt;strong&gt;Gateway&lt;&#x2F;strong&gt; still owns the Twin; a &lt;strong&gt;Dashboard&lt;&#x2F;strong&gt; only watches. Hello World stays the vehicle. The Twin stays the observer.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;&lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;www.remotivelabs.com&#x2F;&quot;&gt;RemotiveLabs&lt;&#x2F;a&gt; offers a vehicle-simulation platform for automotive software teams: describe the topology as code, mix virtual and physical ECUs, and run the same setup from SIL toward HIL. &lt;em&gt;Hello World&lt;&#x2F;em&gt; is their smallest &lt;strong&gt;live&lt;&#x2F;strong&gt; car.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;Potential&lt;&#x2F;strong&gt;:&lt;&#x2F;em&gt; The aim is not “Can we rebuild Remotive in Rust?” The aim is: can the Twin I
+have already built — an &lt;strong&gt;Actor system&lt;&#x2F;strong&gt; in &lt;strong&gt;Rust&lt;&#x2F;strong&gt; — attach to a live vehicle topology, watch
+what the ECUs actually say, and warn an observer when something is amiss?&lt;&#x2F;p&gt;
 &lt;blockquote&gt;
-&lt;p&gt;In Software-Defined-Vehicles, digital twins can be more than HMI mirrors, like catching faults
-the driver display will not show.&lt;&#x2F;p&gt;
+&lt;p&gt;📌 &lt;strong&gt;More than an HMI mirror.&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;In Software-Defined Vehicles, a digital twin that only copies the driver display is a mirror,
+not a twin. The value lies in catching faults the cabin will not show.&lt;&#x2F;p&gt;
 &lt;&#x2F;blockquote&gt;
+&lt;p&gt;That makes this work a candidate &lt;strong&gt;SIL&lt;&#x2F;strong&gt; (software-in-the-loop) observation component today: the twin, the Remotive bus, and the ECU models already form a virtual testbed which we can drive from Remotive&#x27;s notebook, watch from the Twin, and replay from disk.&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;  Jupyter &#x2F; 3D cute car (driver display)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;            │&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;            v&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;      RemotiveBroker          (vehicle bus &#x2F; signal hub)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;            │&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;            ├──► Remotive ECUs (body and lamp computers)&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;            └──► remotive_bridge ── observed signals + session start&#x2F;stop&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                            │&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                            v&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;┌─ Gateway (gateway-ECU role) ──────────┐&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;│   Digital Twin = the car in software  │──── live watch ───&amp;gt; [ Dashboard ]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;│   Actor Brain + ECU children (Rust)   │&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;│                    │                  │&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;└────────────────────┼──────────────────┘&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                     v&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;            [ Disk: replayable observations ]&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;hr &#x2F;&gt;
 &lt;h3 id=&quot;the-architecture-at-a-glance&quot;&gt;The Architecture At a glance&lt;&#x2F;h3&gt;
 &lt;p&gt;The &lt;em&gt;Digital Twin&lt;&#x2F;em&gt; (&lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;nsengupta.github.io&#x2F;blog&#x2F;prototype-software-defined-vehicle-milestone-1&#x2F;&quot;&gt;link&lt;&#x2F;a&gt;) owns its own CAN world: an emulator drives the session, Gateway holds the

@@ -112,7 +112,7 @@ main h3 {
         <circle cx="16" cy="16" r="14"/>
         <path d="M16 8 L16 16 20 20"/>
     </svg>
-    <span>3 minute read</span>
+    <span>4 minute read</span>
     <svg class="icon i-edit" viewBox="0 0 32 32"
          width="16" height="16" fill="none" stroke="currentcolor"
          stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
@@ -123,7 +123,29 @@ main h3 {
 </span>
     </header>
     <div itemprop="articleBody">
-      <h3 id=""></h3>
+      <h3 id="at-a-glance-1-minute">At a glance (1 minute)</h3>
+<p>I have <strong>zero</strong> automotive background, and I am wading in anyway. I see a modern car not only as
+torque, motion, powertain etc. and linkages between those, but as a <strong>host of a complex,
+distributed software system</strong> — state management, concurrency, time-bound communication, and predictable behaviour. That is the problem-set I have worked for three decades: protocol, middleware, distributed systems, and diagnostics on Linux/Unix.</p>
+<blockquote>
+<p>This outsider's clean slate that I bring, is, I argue, a strategic advantage — not a licence to
+skip the domain.I still have to fill in CAN, UDS, VSS etc., and the <strong>safety culture</strong>
+that automotive software has to deal with. Vehicle behaviour is <em>software</em>, so it should be modelled like any
+other reliable software system: State machines, Correct-by-construction, Predictability, and
+Electro-mechanical parts treated as Peripheral interfaces, with a Digital Twin as the source
+of truth. A software-centric approach, if you like.</p>
+</blockquote>
+<p>The path I am taking:</p>
+<ul>
+<li>listen to industry experts, veterans and practitioners on YouTube and at
+conferences;</li>
+<li>work through <a rel="external" href="https://www.digital.auto/">digital.auto</a>'s training material;</li>
+<li>study SDV through <a rel="external" href="https://eclipsesdv.org/">Eclipse SDV</a>;</li>
+<li>form a mental model of a vehicle Digital Twin;</li>
+<li>then <strong>build one</strong> model — code-first — as a proof of that understanding.</li>
+</ul>
+<p>I will know I qualify when that twin can be <strong>driven, watched, and replayed</strong> — and when people who already live in this domain can point at what it gets wrong.</p>
+<hr />
 <pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>╔═══════════════════════╗</span></span>
 <span class="giallo-l"><span>║ An honest confession: ║</span></span>
 <span class="giallo-l"><span>╚═══════════════════════╝</span></span></code></pre>
@@ -150,10 +172,17 @@ main h3 {
 <p><strong>Abstraction over Complexity:</strong> Treating electro-mechanical components as peripheral interfaces, allowing the "Digital Twin" to become the primary source of truth.</p>
 </li>
 </ul>
+<p>That clean slate is not a skip. I still have to learn the vehicle bus (<strong>CAN</strong>), the diagnostic conversation (<strong>UDS</strong>), the signal vocabulary (<strong>VSS</strong>), and the <strong>safety culture</strong> in which this software is allowed to run. Those are the gaps I am filling; they are not optional flavour.</p>
 <pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>╔═══════════════════════════════════════╗</span></span>
 <span class="giallo-l"><span>║ What is the path that I have charted? ║</span></span>
 <span class="giallo-l"><span>╚═══════════════════════════════════════╝</span></span></code></pre>
 <ul>
+<li>
+<p>Listening to experts on YouTube channels and at conferences</p>
+</li>
+<li>
+<p>Filling myself in with what <a rel="external" href="https://www.digital.auto/">digital.auto</a>'s training material contains</p>
+</li>
 <li>
 <p>Studying the world of Software Defined Vehicle primarliy through <a rel="external" href="https://eclipsesdv.org/">Eclipse SDV</a> initiative</p>
 </li>
@@ -164,6 +193,7 @@ main h3 {
 <p>Build a <em>Digital Twin</em> - all by myself - as a proof of concept, to establish if my understanding is correct and in the hope that some day, I will be able to contribute towards a real-life <em>Digital Twin</em>. This project is my way of understanding that intersection by building software (#code-first) rather than merely studying architectures.</p>
 </li>
 </ul>
+<p>I will know the case holds when that twin can be <strong>driven, watched, and replayed</strong> — and when experts and peers can point at what it gets wrong. Until then, "do I qualify?" stays an open check, not a claim.</p>
 
     </div>
 
