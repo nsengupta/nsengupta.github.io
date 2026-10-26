@@ -5,8 +5,135 @@
     <link rel="self" type="application/atom+xml" href="https://nsengupta.github.io/tags/sdv-prototype/atom.xml"/>
     <link rel="alternate" type="text/html" href="https://nsengupta.github.io"/>
     <generator uri="https://www.getzola.org/">Zola</generator>
-    <updated>2026-09-19T00:00:00+00:00</updated>
+    <updated>2026-10-26T00:00:00+00:00</updated>
     <id>https://nsengupta.github.io/tags/sdv-prototype/atom.xml</id>
+    <entry xml:lang="en">
+        <title>What If You Could Replay the Decisions Your Software-Defined Vehicle Makes?</title>
+        <published>2026-10-26T00:00:00+00:00</published>
+        <updated>2026-10-26T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-6/"/>
+        <id>https://nsengupta.github.io/blog/prototype-software-defined-vehicle-6/</id>
+        
+        <content type="html" xml:base="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-6/">&lt;h2 id=&quot;tl-dr&quot;&gt;TL;DR&lt;&#x2F;h2&gt;
+&lt;p&gt;In a Software-Defined Vehicle, software components continuously react to events from sensors, ECUs, and other parts of the vehicle system. Getting each event right is not enough: the order in which events arrive can change the decisions the software makes.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;What if we could take a recorded execution, change the order of selected events, and replay them through the same software to see how its decisions change—and trace why?&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;This prototype explores that idea using a Rust-based vehicle Digital Twin built around &lt;strong&gt;Actors and explicit Finite State Machines (FSMs)&lt;&#x2F;strong&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;The Actor system models independently reacting components; the FSMs make their state-dependent decisions explicit. Together, they provide something more useful than a stream of log messages: a record of how incoming events drive state transitions, trigger actions, and influence subsequent decisions.&lt;&#x2F;p&gt;
+&lt;p&gt;A simulated vehicle environment supplies the events. We can modify a copy of a recorded event-sequence and feed it back through the same decision logic, then compare the resulting execution with the original.&lt;&#x2F;p&gt;
+&lt;p&gt;The goal is to make software decisions &lt;em&gt;reproducible&lt;&#x2F;em&gt; and &lt;em&gt;inspectable&lt;&#x2F;em&gt;—even when changing the order of events, rather than the code itself, changes the outcome.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;📌 &lt;strong&gt;Note:&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;This is a working Linux-based prototype using SocketCAN&#x27;s virtual CAN interface (vcan) to demonstrate a testing approach, not a production vehicle platform. The experiments show specific, reproducible behaviours; they are not a claim of exhaustive verification.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;one-change-in-event-order-a-different-decision&quot;&gt;One change in event order, a different decision&lt;&#x2F;h2&gt;
+&lt;p&gt;Consider a car that is initially idle. Engine is idling at minimum RPM. Visibility is good. Headlamp is ready.&lt;&#x2F;p&gt;
+&lt;p&gt;Two events are about to arrive: the engine-speed reading that indicates the car is moving, and a lux reading that indicates poor visibility. Rain-sensor is active too.&lt;&#x2F;p&gt;
+&lt;p&gt;During a regular run, the low-visibility event arrives first. The twin requests that the headlamp be switched on. The Rain sensor, sends its event, Then arrives, the engine-speed event. The twin transitions to  the state: &lt;code&gt;Driving&lt;&#x2F;code&gt;. The ledger tells us the story.&lt;&#x2F;p&gt;
+&lt;p&gt;Now we make one deliberate change to the same ledger: we exchange the order of the low-visibility and engine-speed events, leaving the rain event in between.&lt;&#x2F;p&gt;
+&lt;p&gt;This time, the engine-speed event arrives first. The twin derives a speed of 171 km&#x2F;h and enters &lt;code&gt;DrivingDangerously&lt;&#x2F;code&gt;—because that&#x27;s what the Twin&#x27;s decision engine, decides (a prototype-specific assumption that we are making)! It activates the buzzer too. Only afterwards does the low-visibility event arrive. The twin then requests that the headlamp be switched on. The ledger tells us the story, again.&lt;&#x2F;p&gt;
+&lt;p&gt;The important difference is the &lt;u&gt;sequence of decisions&lt;&#x2F;u&gt;t that the Twin makes.&lt;&#x2F;p&gt;
+&lt;p&gt;Original execution:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;┌───────────┐     ╔══════╗     ┌─────────────┐     ╔══════╗&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;│ Lux = 820 │ --&amp;gt; ║ Idle ║ --&amp;gt; │ Rain starts │ --&amp;gt; ║ Idle ║&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;└───────────┘     ╚══════╝     └─────────────┘     ╚══════╝&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                                       |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                                       |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                                       V &lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                ╔═════════╗     ┌────────────┐&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                ║ Driving ║ &amp;lt;-- │ RPM = 1500 │&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                ╚═════════╝     └────────────┘&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Modified execution:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;     ┌────────────┐     ╔════════════════════╗            ┌─────────────┐&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;     │ RPM = 1500 │ --&amp;gt; ║ DrivingDangerously ║     --&amp;gt;    │ Rain starts │&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;     └────────────┘     ╚════════════════════╝            └─────────────┘&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                                                 |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                                                 |&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;                                                                 V &lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;     ╔════════════════════╗        ┌───────────┐         ╔════════════════════╗&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;     ║ DrivingDangerously ║  &amp;lt;--   │ Lux = 820 │   &amp;lt;--   ║ DrivingDangerously ║&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;     ╚════════════════════╝        └───────────┘         ╚════════════════════╝&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;plain&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;┌────────┐&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;│        │  single line box: an event just received&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;└────────┘&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;╔════════╗&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;║        ║  double line box: the car&amp;#39;s state after that event&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span&gt;╚════════╝&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Using a tool (part of the prototype), two outcomes - original and modified - can be comapared to produce a report like:&lt;&#x2F;p&gt;
+&lt;pre class=&quot;giallo&quot; style=&quot;color: #F8F8F2; background-color: #282A36;&quot;&gt;&lt;code data-lang=&quot;shellscript&quot;&gt;&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt;snip&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;EXPERIMENT:&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; Event-order sensitivity&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;RESULT&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;Original&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; execution: Driving&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;Modified&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; execution: DrivingDangerously&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;EVIDENCE&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; — first event&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span&gt;snip&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;Original:&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; lux=&lt;&#x2F;span&gt;&lt;span style=&quot;color: #BD93F9;&quot;&gt;820&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #BD93F9;&quot;&gt;state&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt;Idle&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #BD93F9;&quot;&gt;action&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt;request_front_headlamp_on&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;Modified:&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; rpm=&lt;&#x2F;span&gt;&lt;span style=&quot;color: #BD93F9;&quot;&gt;1500&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #BD93F9;&quot;&gt;state&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt;DrivingDangerously&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #BD93F9;&quot;&gt;actions&lt;&#x2F;span&gt;&lt;span style=&quot;color: #FF79C6;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt;publish_state_sync,start_buzzer&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;FINAL&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; STATE&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;Original:&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt;  Off&lt;&#x2F;span&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;   # The vehicle reaches this state finally.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;
+&lt;span class=&quot;giallo-l&quot;&gt;&lt;span style=&quot;color: #50FA7B;&quot;&gt;Modified:&lt;&#x2F;span&gt;&lt;span style=&quot;color: #F1FA8C;&quot;&gt; Off&lt;&#x2F;span&gt;&lt;span style=&quot;color: #6272A4;&quot;&gt;    # The vehicle reaches this state finally.&lt;&#x2F;span&gt;&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;The experiment does not require a different twin or a new decision algorithm. We &lt;strong&gt;modify a copy of the recorded event sequence and feed it back through the same twin&lt;&#x2F;strong&gt;. The resulting ledger records the decisions made during this (re)execution.&lt;&#x2F;p&gt;
+&lt;p&gt;There is one more revealing detail: both executions eventually reach standstill and switch off. Their final states are identical, but their paths to that ending are not. Therefore, the end-state is not enough to know what happened meanwhile. This tool makes that possible.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;when-the-command-and-the-confirmation-disagree&quot;&gt;When the command and the confirmation disagree&lt;&#x2F;h2&gt;
+&lt;p&gt;A headlamp command is not the same as a headlamp response. The actuator may acknowledge the command, reject it, or fail to respond as expected.&lt;&#x2F;p&gt;
+&lt;p&gt;By changing the recorded response and replaying the sequence through the same Actor&#x2F;FSM logic, we can examine how the Twin handles these different outcomes. In the demonstrated experiment, a negative acknowledgement leaves the headlamp in &lt;code&gt;Ready&lt;&#x2F;code&gt; and triggers a warning; a positive acknowledgement moves it to &lt;code&gt;On&lt;&#x2F;code&gt; without the warning.&lt;&#x2F;p&gt;
+&lt;p&gt;The same approach can help investigate how vehicle software responds when commands, confirmations, and subsequent events don&#x27;t follow the expected sequence.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;where-this-could-help-engineering-teams&quot;&gt;Where this could help engineering teams&lt;&#x2F;h2&gt;
+&lt;p&gt;Consider a few questions an engineer might ask while investigating vehicle software:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;What if events arrive in a different order?&lt;&#x2F;strong&gt; Replay a recorded execution with selected events reordered, and inspect how the software&#x27;s decisions change.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;What if a component responds differently?&lt;&#x2F;strong&gt; Change a recorded acknowledgement and examine how the Twin handles success or failure.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Can we investigate this without the car?&lt;&#x2F;strong&gt; Reproduce the scenario offline, inspect the resulting decisions, and compare executions before attempting the same investigation on a vehicle.&lt;&#x2F;p&gt;
+&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;These are examples of how a Digital Twin could help bring certain investigations earlier into development. The prototype demonstrates the replay-and-inspect approach; applying it to a particular vehicle subsystem would require adapting the model, defining the scenarios and deciding what behaviour needs to be checked.&lt;&#x2F;p&gt;
+&lt;p&gt;The useful question is: &lt;strong&gt;which decisions or failure scenarios in your own system would benefit from being reproducible and inspectable this way?&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;the-technology-used-a-summary&quot;&gt;The technology used: a summary&lt;&#x2F;h2&gt;
+&lt;p&gt;A few (Linux) processes interact, using virtual CAN bus and Unix Domain Socket:&lt;&#x2F;p&gt;
+&lt;ul&gt;
+&lt;li&gt;An &lt;strong&gt;emulator&lt;&#x2F;strong&gt; publishes the world: lux, rain, engine speed. It always runs under a world profile. The night-and-rain drive is one such profile.&lt;&#x2F;li&gt;
+&lt;li&gt;A &lt;strong&gt;gateway&lt;&#x2F;strong&gt; owns the digital twin.&lt;&#x2F;li&gt;
+&lt;li&gt;Two &lt;strong&gt;virtual ECUs (vECUs)&lt;&#x2F;strong&gt;, lamp and wiper, answer actuation commands from the Twin, on the same bus.&lt;&#x2F;li&gt;
+&lt;li&gt;A &lt;strong&gt;terminal&lt;&#x2F;strong&gt; only watches. Live, it follows a stream from the gateway.&lt;&#x2F;li&gt;
+&lt;&#x2F;ul&gt;
+&lt;p&gt;&lt;strong&gt;Car physics&lt;&#x2F;strong&gt; is a pure library layer; responsible for all calculations to derive car&#x27;s response to physical world.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;The state machine&lt;&#x2F;strong&gt; is pure Finite State Machine. Its job is to arrive at decisions, always deterministatlly.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;The actor system&lt;&#x2F;strong&gt; runs inside the gateway. A tree of actors represent the brain and zone vECUs.&lt;&#x2F;p&gt;
+&lt;hr &#x2F;&gt;
+&lt;h2 id=&quot;takeaway-and-possible-next-steps&quot;&gt;Takeaway and possible next steps&lt;&#x2F;h2&gt;
+&lt;p&gt;The prototype demonstrates a way to make software decisions &lt;u&gt;reproducible&lt;&#x2F;u&gt; and &lt;u&gt;inspectable&lt;&#x2F;u&gt;: start with a controlled scenario, introduce a deliberate change, replay the execution, and examine the resulting decisions and state transitions.&lt;&#x2F;p&gt;
+&lt;p&gt;The experiments here are handcrafted, not exhaustive verification. Applying this approach to a real vehicle subsystem would require further engineering, including defining the scenarios and the properties to be checked.&lt;&#x2F;p&gt;
+&lt;p&gt;If you are dealing with an SDV engineering problem where event ordering, component responses or failure scenarios need closer investigation, I&#x27;d be interested in discussing how this prototype could be adapted and extended to address it. &lt;strong&gt;I am open to paid engineering assignments&lt;&#x2F;strong&gt; focused on specific vehicle subsystems or engineering problems. You can reach me through &lt;a rel=&quot;external&quot; href=&quot;https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;nirmalyasengupta&#x2F;&quot;&gt;LinkedIn&lt;&#x2F;a&gt; DM.&lt;&#x2F;p&gt;
+</content>
+        
+    </entry>
     <entry xml:lang="en">
         <title>Digital Twin observing RemotiveCar from the topology Bus</title>
         <published>2026-09-19T00:00:00+00:00</published>

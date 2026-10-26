@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  
+  
+  <meta name="description" content="Software Programming, reflections, soliloquys " />
+  
+  
+
+  <title>
+    
+    What If You Could Replay the Decisions Your Software-Defined Vehicle Makes?
+    
+</title>
+
+  
+  <link rel="stylesheet" href="https://nsengupta.github.io/site.css">
+  
+
+  
+  
+</head>
+
+<body class="hack dark main container">
+  
+
+<style>
+body.container {
+    max-width: 68rem !important;
+}
+
+article p,
+article li,
+main p,
+main li {
+    font-size: 1.08rem !important;
+    line-height: 1.65 !important;
+}
+
+article h1,
+main h1 {
+    font-size: 1.8rem !important;
+    line-height: 1.3 !important;
+}
+
+article h2,
+main h2 {
+    font-size: 1.5rem !important;
+}
+
+article h3,
+main h3 {
+    font-size: 1.25rem !important;
+}
+
+/* Remove the gigantic ===== decoration */
+.hack h1:after {
+    content: "" !important;
+}
+
+/* Remove Markdown-style heading prefixes (#, ##, ###, etc.) */
+.hack h2:before,
+.hack h3:before,
+.hack h4:before,
+.hack h5:before,
+.hack h6:before {
+    content: "" !important;
+}
+</style>
+
+
+    
+        
+  
+  <header class="nav-header">
+    <nav itemscope itemtype="http://schema.org/SiteNavigationElement" class="navbar">
+      <div class="nav-links">
+        
+        <a itemprop="url"
+          class=""
+          href="/">
+          <span itemprop="name">Home</span></a>
+        
+        <a itemprop="url"
+          class=""
+          href="/blog">
+          <span itemprop="name">Technical Blog</span></a>
+        
+      </div>
+    </nav>
+    
+
+  </header>
+  
+  
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">What If You Could Replay the Decisions Your Software-Defined Vehicle Makes?</h1>
+        <span class="muted">
+    <svg class="icon i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>6 minute read</span>
+    <svg class="icon i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    Published: 2026-10-26
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <h2 id="tl-dr">TL;DR</h2>
+<p>In a Software-Defined Vehicle, software components continuously react to events from sensors, ECUs, and other parts of the vehicle system. Getting each event right is not enough: the order in which events arrive can change the decisions the software makes.</p>
+<p><strong>What if we could take a recorded execution, change the order of selected events, and replay them through the same software to see how its decisions change—and trace why?</strong></p>
+<p>This prototype explores that idea using a Rust-based vehicle Digital Twin built around <strong>Actors and explicit Finite State Machines (FSMs)</strong>.</p>
+<p>The Actor system models independently reacting components; the FSMs make their state-dependent decisions explicit. Together, they provide something more useful than a stream of log messages: a record of how incoming events drive state transitions, trigger actions, and influence subsequent decisions.</p>
+<p>A simulated vehicle environment supplies the events. We can modify a copy of a recorded event-sequence and feed it back through the same decision logic, then compare the resulting execution with the original.</p>
+<p>The goal is to make software decisions <em>reproducible</em> and <em>inspectable</em>—even when changing the order of events, rather than the code itself, changes the outcome.</p>
+<blockquote>
+<p>📌 <strong>Note:</strong></p>
+<p>This is a working Linux-based prototype using SocketCAN's virtual CAN interface (vcan) to demonstrate a testing approach, not a production vehicle platform. The experiments show specific, reproducible behaviours; they are not a claim of exhaustive verification.</p>
+</blockquote>
+<hr />
+<h2 id="one-change-in-event-order-a-different-decision">One change in event order, a different decision</h2>
+<p>Consider a car that is initially idle. Engine is idling at minimum RPM. Visibility is good. Headlamp is ready.</p>
+<p>Two events are about to arrive: the engine-speed reading that indicates the car is moving, and a lux reading that indicates poor visibility. Rain-sensor is active too.</p>
+<p>During a regular run, the low-visibility event arrives first. The twin requests that the headlamp be switched on. The Rain sensor, sends its event, Then arrives, the engine-speed event. The twin transitions to  the state: <code>Driving</code>. The ledger tells us the story.</p>
+<p>Now we make one deliberate change to the same ledger: we exchange the order of the low-visibility and engine-speed events, leaving the rain event in between.</p>
+<p>This time, the engine-speed event arrives first. The twin derives a speed of 171 km/h and enters <code>DrivingDangerously</code>—because that's what the Twin's decision engine, decides (a prototype-specific assumption that we are making)! It activates the buzzer too. Only afterwards does the low-visibility event arrive. The twin then requests that the headlamp be switched on. The ledger tells us the story, again.</p>
+<p>The important difference is the <u>sequence of decisions</u>t that the Twin makes.</p>
+<p>Original execution:</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>┌───────────┐     ╔══════╗     ┌─────────────┐     ╔══════╗</span></span>
+<span class="giallo-l"><span>│ Lux = 820 │ --&gt; ║ Idle ║ --&gt; │ Rain starts │ --&gt; ║ Idle ║</span></span>
+<span class="giallo-l"><span>└───────────┘     ╚══════╝     └─────────────┘     ╚══════╝</span></span>
+<span class="giallo-l"><span>                                                       |</span></span>
+<span class="giallo-l"><span>                                                       |</span></span>
+<span class="giallo-l"><span>                                                       V </span></span>
+<span class="giallo-l"><span>                                ╔═════════╗     ┌────────────┐</span></span>
+<span class="giallo-l"><span>                                ║ Driving ║ &lt;-- │ RPM = 1500 │</span></span>
+<span class="giallo-l"><span>                                ╚═════════╝     └────────────┘</span></span></code></pre>
+<p>Modified execution:</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>     ┌────────────┐     ╔════════════════════╗            ┌─────────────┐</span></span>
+<span class="giallo-l"><span>     │ RPM = 1500 │ --&gt; ║ DrivingDangerously ║     --&gt;    │ Rain starts │</span></span>
+<span class="giallo-l"><span>     └────────────┘     ╚════════════════════╝            └─────────────┘</span></span>
+<span class="giallo-l"><span>                                                                 |</span></span>
+<span class="giallo-l"><span>                                                                 |</span></span>
+<span class="giallo-l"><span>                                                                 V </span></span>
+<span class="giallo-l"><span>     ╔════════════════════╗        ┌───────────┐         ╔════════════════════╗</span></span>
+<span class="giallo-l"><span>     ║ DrivingDangerously ║  &lt;--   │ Lux = 820 │   &lt;--   ║ DrivingDangerously ║</span></span>
+<span class="giallo-l"><span>     ╚════════════════════╝        └───────────┘         ╚════════════════════╝</span></span></code></pre><pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"></span>
+<span class="giallo-l"><span>┌────────┐</span></span>
+<span class="giallo-l"><span>│        │  single line box: an event just received</span></span>
+<span class="giallo-l"><span>└────────┘</span></span>
+<span class="giallo-l"><span>╔════════╗</span></span>
+<span class="giallo-l"><span>║        ║  double line box: the car&#39;s state after that event</span></span>
+<span class="giallo-l"><span>╚════════╝</span></span></code></pre>
+<p>Using a tool (part of the prototype), two outcomes - original and modified - can be comapared to produce a report like:</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="shellscript"><span class="giallo-l"><span style="color: #FF79C6;">&lt;</span><span>snip</span><span style="color: #FF79C6;">&gt;</span></span>
+<span class="giallo-l"><span style="color: #50FA7B;">EXPERIMENT:</span><span style="color: #F1FA8C;"> Event-order sensitivity</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #50FA7B;">RESULT</span></span>
+<span class="giallo-l"><span style="color: #50FA7B;">Original</span><span style="color: #F1FA8C;"> execution: Driving</span></span>
+<span class="giallo-l"><span style="color: #50FA7B;">Modified</span><span style="color: #F1FA8C;"> execution: DrivingDangerously</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #50FA7B;">EVIDENCE</span><span style="color: #F1FA8C;"> — first event</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #FF79C6;">&lt;</span><span>snip</span><span style="color: #FF79C6;">&gt;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #50FA7B;">Original:</span><span style="color: #F1FA8C;"> lux=</span><span style="color: #BD93F9;">820</span></span>
+<span class="giallo-l"><span style="color: #BD93F9;">state</span><span style="color: #FF79C6;">=</span><span style="color: #F1FA8C;">Idle</span></span>
+<span class="giallo-l"><span style="color: #BD93F9;">action</span><span style="color: #FF79C6;">=</span><span style="color: #F1FA8C;">request_front_headlamp_on</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #50FA7B;">Modified:</span><span style="color: #F1FA8C;"> rpm=</span><span style="color: #BD93F9;">1500</span></span>
+<span class="giallo-l"><span style="color: #BD93F9;">state</span><span style="color: #FF79C6;">=</span><span style="color: #F1FA8C;">DrivingDangerously</span></span>
+<span class="giallo-l"><span style="color: #BD93F9;">actions</span><span style="color: #FF79C6;">=</span><span style="color: #F1FA8C;">publish_state_sync,start_buzzer</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #50FA7B;">FINAL</span><span style="color: #F1FA8C;"> STATE</span></span>
+<span class="giallo-l"><span style="color: #50FA7B;">Original:</span><span style="color: #F1FA8C;">  Off</span><span style="color: #6272A4;">   # The vehicle reaches this state finally.</span></span>
+<span class="giallo-l"><span style="color: #50FA7B;">Modified:</span><span style="color: #F1FA8C;"> Off</span><span style="color: #6272A4;">    # The vehicle reaches this state finally.</span></span></code></pre>
+<p>The experiment does not require a different twin or a new decision algorithm. We <strong>modify a copy of the recorded event sequence and feed it back through the same twin</strong>. The resulting ledger records the decisions made during this (re)execution.</p>
+<p>There is one more revealing detail: both executions eventually reach standstill and switch off. Their final states are identical, but their paths to that ending are not. Therefore, the end-state is not enough to know what happened meanwhile. This tool makes that possible.</p>
+<hr />
+<h2 id="when-the-command-and-the-confirmation-disagree">When the command and the confirmation disagree</h2>
+<p>A headlamp command is not the same as a headlamp response. The actuator may acknowledge the command, reject it, or fail to respond as expected.</p>
+<p>By changing the recorded response and replaying the sequence through the same Actor/FSM logic, we can examine how the Twin handles these different outcomes. In the demonstrated experiment, a negative acknowledgement leaves the headlamp in <code>Ready</code> and triggers a warning; a positive acknowledgement moves it to <code>On</code> without the warning.</p>
+<p>The same approach can help investigate how vehicle software responds when commands, confirmations, and subsequent events don't follow the expected sequence.</p>
+<hr />
+<h2 id="where-this-could-help-engineering-teams">Where this could help engineering teams</h2>
+<p>Consider a few questions an engineer might ask while investigating vehicle software:</p>
+<ul>
+<li>
+<p><strong>What if events arrive in a different order?</strong> Replay a recorded execution with selected events reordered, and inspect how the software's decisions change.</p>
+</li>
+<li>
+<p><strong>What if a component responds differently?</strong> Change a recorded acknowledgement and examine how the Twin handles success or failure.</p>
+</li>
+<li>
+<p><strong>Can we investigate this without the car?</strong> Reproduce the scenario offline, inspect the resulting decisions, and compare executions before attempting the same investigation on a vehicle.</p>
+</li>
+</ul>
+<p>These are examples of how a Digital Twin could help bring certain investigations earlier into development. The prototype demonstrates the replay-and-inspect approach; applying it to a particular vehicle subsystem would require adapting the model, defining the scenarios and deciding what behaviour needs to be checked.</p>
+<p>The useful question is: <strong>which decisions or failure scenarios in your own system would benefit from being reproducible and inspectable this way?</strong></p>
+<hr />
+<h2 id="the-technology-used-a-summary">The technology used: a summary</h2>
+<p>A few (Linux) processes interact, using virtual CAN bus and Unix Domain Socket:</p>
+<ul>
+<li>An <strong>emulator</strong> publishes the world: lux, rain, engine speed. It always runs under a world profile. The night-and-rain drive is one such profile.</li>
+<li>A <strong>gateway</strong> owns the digital twin.</li>
+<li>Two <strong>virtual ECUs (vECUs)</strong>, lamp and wiper, answer actuation commands from the Twin, on the same bus.</li>
+<li>A <strong>terminal</strong> only watches. Live, it follows a stream from the gateway.</li>
+</ul>
+<p><strong>Car physics</strong> is a pure library layer; responsible for all calculations to derive car's response to physical world.</p>
+<p><strong>The state machine</strong> is pure Finite State Machine. Its job is to arrive at decisions, always deterministatlly.</p>
+<p><strong>The actor system</strong> runs inside the gateway. A tree of actors represent the brain and zone vECUs.</p>
+<hr />
+<h2 id="takeaway-and-possible-next-steps">Takeaway and possible next steps</h2>
+<p>The prototype demonstrates a way to make software decisions <u>reproducible</u> and <u>inspectable</u>: start with a controlled scenario, introduce a deliberate change, replay the execution, and examine the resulting decisions and state transitions.</p>
+<p>The experiments here are handcrafted, not exhaustive verification. Applying this approach to a real vehicle subsystem would require further engineering, including defining the scenarios and the properties to be checked.</p>
+<p>If you are dealing with an SDV engineering problem where event ordering, component responses or failure scenarios need closer investigation, I'd be interested in discussing how this prototype could be adapted and extended to address it. <strong>I am open to paid engineering assignments</strong> focused on specific vehicle subsystems or engineering problems. You can reach me through <a rel="external" href="https://www.linkedin.com/in/nirmalyasengupta/">LinkedIn</a> DM.</p>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                
+                    
+                    tagged
+                    
+                        <a href="https://nsengupta.github.io/tags/sdv-prototype/">sdv-prototype</a>
+                        
+                    
+                
+            </p>
+            
+            
+        </footer>
+    
+</article>
+
+
+
+
+
+  <!-- optional scripts -->
+  
+  
+
+  
+
+  
+
+  
+</body>
+
+</html>
