@@ -138,9 +138,13 @@ main h3 {
 <h2 id="one-change-in-event-order-a-different-decision">One change in event order, a different decision</h2>
 <p>Consider a car that is initially idle. Engine is idling at minimum RPM. Visibility is good. Headlamp is ready.</p>
 <p>Two events are about to arrive: the engine-speed reading that indicates the car is moving, and a lux reading that indicates poor visibility. Rain-sensor is active too.</p>
-<p>During a regular run, the low-visibility event arrives first. The twin requests that the headlamp be switched on. The Rain sensor, sends its event, Then arrives, the engine-speed event. The twin transitions to  the state: <code>Driving</code>. The ledger tells us the story.</p>
+<p>During a regular run, the low-visibility event arrives first. The twin requests that the headlamp be switched on. The Rain sensor sends its event. Then the engine-speed event arrives. The twin transitions to  the state: <code>Driving</code>. The ledger tells us the story.</p>
 <p>Now we make one deliberate change to the same ledger: we exchange the order of the low-visibility and engine-speed events, leaving the rain event in between.</p>
-<p>This time, the engine-speed event arrives first. The twin derives a speed of 171 km/h and enters <code>DrivingDangerously</code>—because that's what the Twin's decision engine, decides (a prototype-specific assumption that we are making)! It activates the buzzer too. Only afterwards does the low-visibility event arrive. The twin then requests that the headlamp be switched on. The ledger tells us the story, again.</p>
+<p>This time, the engine-speed event arrives first. Under the prototype's simplified vehicle model, the Twin derives a speed of 171 km/h and enters <code>DrivingDangerously</code>, activating the buzzer. Only afterwards does the low-visibility event arrive, prompting the Twin to request the headlamp be switched on.</p>
+<blockquote>
+<p>📌 <strong>Note:</strong></p>
+<p>That 171 Km/h is the threshold that the Twin's decision engine recognizes: just an assumption that the prototype makes.</p>
+</blockquote>
 <p>The important difference is the <u>sequence of decisions</u>t that the Twin makes.</p>
 <p>Original execution:</p>
 <pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>┌───────────┐     ╔══════╗     ┌─────────────┐     ╔══════╗</span></span>
@@ -152,7 +156,7 @@ main h3 {
 <span class="giallo-l"><span>                                ╔═════════╗     ┌────────────┐</span></span>
 <span class="giallo-l"><span>                                ║ Driving ║ &lt;-- │ RPM = 1500 │</span></span>
 <span class="giallo-l"><span>                                ╚═════════╝     └────────────┘</span></span></code></pre>
-<p>Modified execution:</p>
+<p>Deliberately modified execution:</p>
 <pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>     ┌────────────┐     ╔════════════════════╗            ┌─────────────┐</span></span>
 <span class="giallo-l"><span>     │ RPM = 1500 │ --&gt; ║ DrivingDangerously ║     --&gt;    │ Rain starts │</span></span>
 <span class="giallo-l"><span>     └────────────┘     ╚════════════════════╝            └─────────────┘</span></span>
@@ -161,15 +165,14 @@ main h3 {
 <span class="giallo-l"><span>                                                                 V </span></span>
 <span class="giallo-l"><span>     ╔════════════════════╗        ┌───────────┐         ╔════════════════════╗</span></span>
 <span class="giallo-l"><span>     ║ DrivingDangerously ║  &lt;--   │ Lux = 820 │   &lt;--   ║ DrivingDangerously ║</span></span>
-<span class="giallo-l"><span>     ╚════════════════════╝        └───────────┘         ╚════════════════════╝</span></span></code></pre><pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"></span>
-<span class="giallo-l"><span>┌────────┐</span></span>
+<span class="giallo-l"><span>     ╚════════════════════╝        └───────────┘         ╚════════════════════╝</span></span></code></pre><pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="plain"><span class="giallo-l"><span>┌────────┐</span></span>
 <span class="giallo-l"><span>│        │  single line box: an event just received</span></span>
 <span class="giallo-l"><span>└────────┘</span></span>
 <span class="giallo-l"><span>╔════════╗</span></span>
 <span class="giallo-l"><span>║        ║  double line box: the car&#39;s state after that event</span></span>
 <span class="giallo-l"><span>╚════════╝</span></span></code></pre>
-<p>Using a tool (part of the prototype), two outcomes - original and modified - can be comapared to produce a report like:</p>
-<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="shellscript"><span class="giallo-l"><span style="color: #FF79C6;">&lt;</span><span>snip</span><span style="color: #FF79C6;">&gt;</span></span>
+<p>Using a tool (part of the prototype), two outcomes - original and modified - can be compared to produce a report like:</p>
+<pre class="giallo" style="color: #F8F8F2; background-color: #282A36;"><code data-lang="shellscript"><span class="giallo-l"><span style="color: #FF79C6;">&lt;</span><span>snip..</span><span style="color: #FF79C6;">&gt;</span></span>
 <span class="giallo-l"><span style="color: #50FA7B;">EXPERIMENT:</span><span style="color: #F1FA8C;"> Event-order sensitivity</span></span>
 <span class="giallo-l"></span>
 <span class="giallo-l"><span style="color: #50FA7B;">RESULT</span></span>
@@ -178,7 +181,7 @@ main h3 {
 <span class="giallo-l"></span>
 <span class="giallo-l"><span style="color: #50FA7B;">EVIDENCE</span><span style="color: #F1FA8C;"> — first event</span></span>
 <span class="giallo-l"></span>
-<span class="giallo-l"><span style="color: #FF79C6;">&lt;</span><span>snip</span><span style="color: #FF79C6;">&gt;</span></span>
+<span class="giallo-l"><span style="color: #FF79C6;">&lt;</span><span>snip..</span><span style="color: #FF79C6;">&gt;</span></span>
 <span class="giallo-l"></span>
 <span class="giallo-l"><span style="color: #50FA7B;">Original:</span><span style="color: #F1FA8C;"> lux=</span><span style="color: #BD93F9;">820</span></span>
 <span class="giallo-l"><span style="color: #BD93F9;">state</span><span style="color: #FF79C6;">=</span><span style="color: #F1FA8C;">Idle</span></span>
@@ -187,6 +190,8 @@ main h3 {
 <span class="giallo-l"><span style="color: #50FA7B;">Modified:</span><span style="color: #F1FA8C;"> rpm=</span><span style="color: #BD93F9;">1500</span></span>
 <span class="giallo-l"><span style="color: #BD93F9;">state</span><span style="color: #FF79C6;">=</span><span style="color: #F1FA8C;">DrivingDangerously</span></span>
 <span class="giallo-l"><span style="color: #BD93F9;">actions</span><span style="color: #FF79C6;">=</span><span style="color: #F1FA8C;">publish_state_sync,start_buzzer</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #FF79C6;">&lt;</span><span>snip..</span><span style="color: #FF79C6;">&gt;</span></span>
 <span class="giallo-l"></span>
 <span class="giallo-l"><span style="color: #50FA7B;">FINAL</span><span style="color: #F1FA8C;"> STATE</span></span>
 <span class="giallo-l"><span style="color: #50FA7B;">Original:</span><span style="color: #F1FA8C;">  Off</span><span style="color: #6272A4;">   # The vehicle reaches this state finally.</span></span>
@@ -224,7 +229,7 @@ main h3 {
 <li>A <strong>terminal</strong> only watches. Live, it follows a stream from the gateway.</li>
 </ul>
 <p><strong>Car physics</strong> is a pure library layer; responsible for all calculations to derive car's response to physical world.</p>
-<p><strong>The state machine</strong> is pure Finite State Machine. Its job is to arrive at decisions, always deterministatlly.</p>
+<p><strong>The state machine</strong> is pure Finite State Machine. Its job is to arrive at decisions, always deterministicatlly.</p>
 <p><strong>The actor system</strong> runs inside the gateway. A tree of actors represent the brain and zone vECUs.</p>
 <hr />
 <h2 id="takeaway-and-possible-next-steps">Takeaway and possible next steps</h2>
