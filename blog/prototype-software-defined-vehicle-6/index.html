@@ -135,11 +135,13 @@ main h3 {
 <p>This is a working Linux-based prototype using SocketCAN's virtual CAN interface (vcan) to demonstrate a testing approach, not a production vehicle platform. The experiments show specific, reproducible behaviours; they are not a claim of exhaustive verification.</p>
 </blockquote>
 <hr />
+<p>This work builds on an earlier milestone in the same SDV Digital Twin project, which describes the architecture and its evolution: <a rel="external" href="https://nsengupta.github.io/blog/prototype-software-defined-vehicle-milestone-1/">Digital Twin: Designing an Actor-Based SDV Prototype in Rust (Milestone 1)</a>.</p>
+<hr />
 <h2 id="one-change-in-event-order-a-different-decision">One change in event order, a different decision</h2>
 <p>Consider a car that is initially idle. Engine is idling at minimum RPM. Visibility is good. Headlamp is ready.</p>
 <p>Two events are about to arrive: the engine-speed reading that indicates the car is moving, and a lux reading that indicates poor visibility. Rain-sensor is active too.</p>
 <p>During a regular run, the low-visibility event arrives first. The twin requests that the headlamp be switched on. The Rain sensor sends its event. Then the engine-speed event arrives. The twin transitions to  the state: <code>Driving</code>. The ledger tells us the story.</p>
-<p>Now we make one deliberate change to the same ledger: we interchange the order of the low-visibility and engine-speed events, leaving the rain event in between.</p>
+<p>Now we make one deliberate change to the same ledger: we <u>interchange</u> the order of the low-visibility and engine-speed events, leaving the rain event in between.</p>
 <p>This time, the engine-speed event arrives first. Under the prototype's simplified vehicle model, the Twin derives a speed of 171 km/h and enters <code>DrivingDangerously</code>, activating the buzzer. Only afterwards does the low-visibility event arrive, prompting the Twin to request the headlamp be switched on.</p>
 <blockquote>
 <p>📌 <strong>Note:</strong></p>
