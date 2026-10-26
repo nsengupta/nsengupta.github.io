@@ -139,7 +139,7 @@ main h3 {
 <p>Consider a car that is initially idle. Engine is idling at minimum RPM. Visibility is good. Headlamp is ready.</p>
 <p>Two events are about to arrive: the engine-speed reading that indicates the car is moving, and a lux reading that indicates poor visibility. Rain-sensor is active too.</p>
 <p>During a regular run, the low-visibility event arrives first. The twin requests that the headlamp be switched on. The Rain sensor sends its event. Then the engine-speed event arrives. The twin transitions to  the state: <code>Driving</code>. The ledger tells us the story.</p>
-<p>Now we make one deliberate change to the same ledger: we exchange the order of the low-visibility and engine-speed events, leaving the rain event in between.</p>
+<p>Now we make one deliberate change to the same ledger: we interchange the order of the low-visibility and engine-speed events, leaving the rain event in between.</p>
 <p>This time, the engine-speed event arrives first. Under the prototype's simplified vehicle model, the Twin derives a speed of 171 km/h and enters <code>DrivingDangerously</code>, activating the buzzer. Only afterwards does the low-visibility event arrive, prompting the Twin to request the headlamp be switched on.</p>
 <blockquote>
 <p>📌 <strong>Note:</strong></p>
@@ -229,8 +229,8 @@ main h3 {
 <li>A <strong>terminal</strong> only watches. Live, it follows a stream from the gateway.</li>
 </ul>
 <p><strong>Car physics</strong> is a pure library layer; responsible for all calculations to derive car's response to physical world.</p>
-<p><strong>The state machine</strong> is pure Finite State Machine. Its job is to arrive at decisions, always deterministicatlly.</p>
-<p><strong>The actor system</strong> runs inside the gateway. A tree of actors represent the brain and zone vECUs.</p>
+<p><strong>The state machine</strong> is pure Finite State Machine. Its job is to arrive at stable states, always deterministicatlly.</p>
+<p><strong>The actor system</strong> runs inside the gateway. A tree of actors represents the brain and zone vECUs.</p>
 <hr />
 <h2 id="takeaway-and-possible-next-steps">Takeaway and possible next steps</h2>
 <p>The prototype demonstrates a way to make software decisions <u>reproducible</u> and <u>inspectable</u>: start with a controlled scenario, introduce a deliberate change, replay the execution, and examine the resulting decisions and state transitions.</p>

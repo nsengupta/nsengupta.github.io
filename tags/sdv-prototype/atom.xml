@@ -39,7 +39,7 @@
 &lt;p&gt;Consider a car that is initially idle. Engine is idling at minimum RPM. Visibility is good. Headlamp is ready.&lt;&#x2F;p&gt;
 &lt;p&gt;Two events are about to arrive: the engine-speed reading that indicates the car is moving, and a lux reading that indicates poor visibility. Rain-sensor is active too.&lt;&#x2F;p&gt;
 &lt;p&gt;During a regular run, the low-visibility event arrives first. The twin requests that the headlamp be switched on. The Rain sensor sends its event. Then the engine-speed event arrives. The twin transitions to  the state: &lt;code&gt;Driving&lt;&#x2F;code&gt;. The ledger tells us the story.&lt;&#x2F;p&gt;
-&lt;p&gt;Now we make one deliberate change to the same ledger: we exchange the order of the low-visibility and engine-speed events, leaving the rain event in between.&lt;&#x2F;p&gt;
+&lt;p&gt;Now we make one deliberate change to the same ledger: we interchange the order of the low-visibility and engine-speed events, leaving the rain event in between.&lt;&#x2F;p&gt;
 &lt;p&gt;This time, the engine-speed event arrives first. Under the prototype&#x27;s simplified vehicle model, the Twin derives a speed of 171 km&#x2F;h and enters &lt;code&gt;DrivingDangerously&lt;&#x2F;code&gt;, activating the buzzer. Only afterwards does the low-visibility event arrive, prompting the Twin to request the headlamp be switched on.&lt;&#x2F;p&gt;
 &lt;blockquote&gt;
 &lt;p&gt;📌 &lt;strong&gt;Note:&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
@@ -129,8 +129,8 @@
 &lt;li&gt;A &lt;strong&gt;terminal&lt;&#x2F;strong&gt; only watches. Live, it follows a stream from the gateway.&lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
 &lt;p&gt;&lt;strong&gt;Car physics&lt;&#x2F;strong&gt; is a pure library layer; responsible for all calculations to derive car&#x27;s response to physical world.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;The state machine&lt;&#x2F;strong&gt; is pure Finite State Machine. Its job is to arrive at decisions, always deterministicatlly.&lt;&#x2F;p&gt;
-&lt;p&gt;&lt;strong&gt;The actor system&lt;&#x2F;strong&gt; runs inside the gateway. A tree of actors represent the brain and zone vECUs.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;The state machine&lt;&#x2F;strong&gt; is pure Finite State Machine. Its job is to arrive at stable states, always deterministicatlly.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;The actor system&lt;&#x2F;strong&gt; runs inside the gateway. A tree of actors represents the brain and zone vECUs.&lt;&#x2F;p&gt;
 &lt;hr &#x2F;&gt;
 &lt;h2 id=&quot;takeaway-and-possible-next-steps&quot;&gt;Takeaway and possible next steps&lt;&#x2F;h2&gt;
 &lt;p&gt;The prototype demonstrates a way to make software decisions &lt;u&gt;reproducible&lt;&#x2F;u&gt; and &lt;u&gt;inspectable&lt;&#x2F;u&gt;: start with a controlled scenario, introduce a deliberate change, replay the execution, and examine the resulting decisions and state transitions.&lt;&#x2F;p&gt;
